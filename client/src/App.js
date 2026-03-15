@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import GameCanvas from "./components/GameCanvas";
 import { useWandererSocket } from "./hooks/useWandererSocket";
 import { getPaletteForTime } from "./hooks/usePalette";
+import { useAudio } from "./hooks/useAudio";
 import "./App.css";
 
 const DESTINATION_KM    = 6000;
@@ -68,7 +69,10 @@ export default function App() {
   const [unreadCount, setUnreadCount]   = useState(0);
   const [showOnlineModal, setShowOnlineModal] = useState(false);
   const [onlineList, setOnlineList]     = useState([]);
+  const [audioStarted, setAudioStarted] = useState(false);
+  const [soundOn, setSoundOn]           = useState(true);
 
+  const playFeedRef         = useRef(null);
   const milestoneFlashTimer = useRef(null);
   const popupIdRef          = useRef(0);
   const feedMsgTimer        = useRef(null);
@@ -195,6 +199,7 @@ export default function App() {
     if (msg.success) {
       setHunger(msg.hunger);
       setHungerState(msg.hungerState);
+      playFeedRef.current?.();
     } else if (msg.reason === "daily_limit") {
       const msLeft = (msg.feedsResetAt || 0) - Date.now();
       showFeedMsg(`No more food today. Resets in ${fmtCountdown(msLeft)}.`);
@@ -257,6 +262,28 @@ export default function App() {
   });
 
   useEffect(() => { setWsConnected(connected); }, [connected]);
+
+  // ── Audio ──
+  const { playThunder, playFeed, toggleMute } = useAudio({ raining, charState, arrived, onInit: () => setAudioStarted(true) });
+  playFeedRef.current = playFeed;
+
+  // Occasionally trigger thunder during rain
+  useEffect(() => {
+    if (!raining) return;
+    const minMs = 30000, maxMs = 120000;
+    let timer;
+    const schedule = () => {
+      timer = setTimeout(() => { playThunder(); schedule(); }, minMs + Math.random() * (maxMs - minMs));
+    };
+    schedule();
+    return () => clearTimeout(timer);
+  }, [raining, playThunder]);
+
+  const handleMuteToggle = useCallback((e) => {
+    e.stopPropagation();
+    const on = toggleMute();
+    setSoundOn(on);
+  }, [toggleMute]);
 
   const boost = useCallback(() => { if (!arrived) sendBoost(); }, [sendBoost, arrived]);
   const feed  = useCallback(() => { if (!arrived) sendFeed();  }, [sendFeed,  arrived]);
@@ -353,11 +380,16 @@ export default function App() {
               <div className="hud-scene">{palette.name || "—"}</div>
               {timeLabel && <div className="hud-time">{timeLabel}</div>}
             </div>
-            <div className="hud hud-bl">
+            <div className="hud hud-bl" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               {charState === "sit"
                 ? <span className="hud-state blink-slow">★ RESTING</span>
                 : <span className="hud-state">{charState === "run" ? "▶▶" : "▶"} {speedLabel}</span>
               }
+{audioStarted && (
+              <button className="mute-btn" onClick={handleMuteToggle} title={soundOn ? "mute" : "unmute"}>
+                {soundOn ? "♪" : "♪̸"}
+              </button>
+              )}
             </div>
             <div
               className={`hud hud-br ${wsConnected ? "online" : "offline"}`}
@@ -465,7 +497,7 @@ export default function App() {
 
           <div className="meter-block">
             <div className="meter-labels">
-              <span className="meter-label-left" style={{ color: hungerColor }}>HUNGER — {hungerLabel}</span>
+              <span className="meter-label-left" style={{ color: hungerColor }}>FULLNESS — {hungerLabel}</span>
               <span className="meter-label-right" style={{ color: hungerColor }}>
                 {hungerFillPct}<span className="meter-unit">%</span>
               </span>
@@ -496,7 +528,7 @@ export default function App() {
           </div>
           <div className="action-block">
             <button
-              className={`feed-btn ${!canFeed ? "depleted" : ""} ${hungerState === "starving" ? "urgent" : ""}`}
+              className={`feed-btn ${!canFeed ? "depleted" : ""}`}
               onClick={feed} disabled={!canFeed}
             >
               🍖 FEED

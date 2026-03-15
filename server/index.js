@@ -33,7 +33,7 @@ const BASE_BURN_RUN   = 0.10;
 const BURN_PER_USER   = 0.008;
 const MAX_USER_BURN   = 0.5;
 
-const HUNGER_RATE      = 100 / (15 * 60);
+const HUNGER_RATE      = 100 / (20 * 60);
 const HUNGER_PER_FEED  = 34;
 const DAILY_FEED_LIMIT = 4;
 

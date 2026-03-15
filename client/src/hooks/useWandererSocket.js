@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
-const WS_URL = "ws://localhost:3001";
-const RECONNECT_DELAY = 3000;
+const WS_URL = process.env.NODE_ENV === "development"
+  ? "ws://localhost:3001"
+  : (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host;const RECONNECT_DELAY = 3000;
 
 export function useWandererSocket({
   onHello, onState, onMyBoost, onBoostEvent, onBoostCapped,

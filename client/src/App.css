@@ -69,6 +69,16 @@ body { display: flex; justify-content: center; }
 .hud-br.online  { color: #5dbb8a; font-size: 9px; }
 .hud-br.offline { color: #888; font-size: 9px; }
 .dot { width: 5px; height: 5px; background: currentColor; display: inline-block; }
+
+.mute-btn {
+  background: transparent; border: none;
+  color: #9090aa; font-size: 12px;
+  cursor: pointer; padding: 0; line-height: 1;
+  text-shadow: 1px 1px 0 #000, 0 0 8px #000;
+  transition: color .15s;
+  font-family: monospace;
+}
+.mute-btn:hover { color: var(--accent); }
 .arrived-scene { color: #8aaa88 !important; letter-spacing: 3px; }
 
 .hud-hunger-warn {
@@ -357,6 +367,19 @@ body { display: flex; justify-content: center; }
 .kofi-link { color: var(--muted); text-decoration: none; font-size: 7px; letter-spacing: 3px; transition: color 0.2s; }
 .kofi-link:hover { color: var(--accent); }
 
+.share-btn {
+  background: transparent;
+  border: 1px solid var(--dim);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 9px;
+  letter-spacing: 4px;
+  padding: 10px 22px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.share-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 /* ── MODALS ──────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0;
@@ -450,23 +473,27 @@ body { display: flex; justify-content: center; }
   .chat-name  { font-size: 7px; }
   .lore       { font-size: 7px; }
 
-  /* Mobile: chat stacks below canvas */
-  .scene-row { flex-direction: column; }
+  /* Mobile: chat floats over the canvas, no layout shift */
+  .scene-row { flex-direction: column; position: relative; }
 
-  .chat-panel.open {
-    width: 100%; min-width: 100%;
-    border-left: 2px solid var(--border);
-    border-top: none;
-    max-height: 500px;
-    overflow: hidden;
-  }
   .chat-panel.closed {
-    width: 100%; min-width: 100%;
+    position: absolute;
+    bottom: 8px; right: 8px;
+    width: 42px; min-width: 42px;
     height: 42px;
-    border-left: 2px solid var(--border);
-    border-top: none;
+    border: 2px solid var(--border);
     flex-direction: row;
     align-items: center;
+    z-index: 20;
+  }
+  .chat-panel.open {
+    position: absolute;
+    bottom: 8px; right: 8px;
+    width: calc(100% - 16px); min-width: unset;
+    max-height: 70%;
+    border: 2px solid var(--border);
+    overflow: hidden;
+    z-index: 20;
   }
   .chat-toggle {
     position: relative;
@@ -477,5 +504,5 @@ body { display: flex; justify-content: center; }
     position: absolute;
     right: 8px; top: 8px;
   }
-  .chat-header { margin-top: 0; }
+  .chat-header { margin-top: 36px; }
 }
