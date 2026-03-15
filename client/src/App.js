@@ -60,6 +60,7 @@ export default function App() {
   const [showArrivalText, setShowArrivalText] = useState(false);
   const [raining, setRaining]           = useState(false);
   const [myUsername, setMyUsername]     = useState("");
+  const [shareCopied, setShareCopied]   = useState(false);
 
   // ── Chat state ──
   const [chatMessages, setChatMessages] = useState([]);
@@ -169,7 +170,11 @@ export default function App() {
     setEnergy(msg.energy);
     setTotalEnergy(msg.totalEnergy);
     const id = popupIdRef.current++;
-    setPopups((prev) => [...prev.slice(-8), { id, x: 58, y: 212, text: `+${fmtEnergy(msg.gain)}`, life: 1, mine: true }]);
+    setPopups((prev) => {
+      const feeds  = prev.filter(p => p.feed);
+      const boosts = prev.filter(p => !p.feed).slice(-6);
+      return [...feeds, ...boosts, { id, x: 58, y: 212, text: `+${fmtEnergy(msg.gain)}`, life: 1, mine: true }];
+    });
     setBoostFlash(true);
     setTimeout(() => setBoostFlash(false), 130);
   }, []);
@@ -178,7 +183,11 @@ export default function App() {
     setEnergy(msg.energy);
     setTotalEnergy(msg.totalEnergy);
     const id = popupIdRef.current++;
-    setPopups((prev) => [...prev.slice(-8), { id, x: 75 + Math.random() * 60, y: 185 + Math.random() * 20, text: `+${fmtEnergy(msg.gain)}`, life: 1, mine: false }]);
+    setPopups((prev) => {
+      const feeds  = prev.filter(p => p.feed);
+      const boosts = prev.filter(p => !p.feed).slice(-6);
+      return [...feeds, ...boosts, { id, x: 75 + Math.random() * 60, y: 185 + Math.random() * 20, text: `+${fmtEnergy(msg.gain)}`, life: 1, mine: false }];
+    });
   }, []);
 
   const handleBoostCapped = useCallback((msg) => { setEnergy(msg.energy); }, []);
@@ -188,7 +197,11 @@ export default function App() {
     setHungerState(msg.hungerState);
     const id = popupIdRef.current++;
     const label = (msg.flag ? `${msg.flag} ` : "") + `${msg.from} fed the wanderer`;
-    setPopups((prev) => [...prev.slice(-8), { id, x: 460 + Math.random() * 30, y: 230, text: label, life: 3.5, feed: true }]);
+    setPopups((prev) => {
+      const feeds  = prev.filter(p => p.feed).slice(-2);
+      const boosts = prev.filter(p => !p.feed);
+      return [...boosts, ...feeds, { id, x: 460 + Math.random() * 30, y: 230, text: label, life: 3.5, feed: true }];
+    });
     setFeedFlash(true);
     setTimeout(() => setFeedFlash(false), 200);
   }, []);
@@ -300,6 +313,31 @@ export default function App() {
     return () => window.removeEventListener("keydown", handler);
   }, [boost, feed]);
 
+  function share() {
+    const km = fmtDistance(distance);
+    const pct = pctToDest.toFixed(1);
+    const shareText = `A little pixel wanderer is walking 6,000 km home. They've made it ${km} (${pct}%). Help keep them moving.`;
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: "The Little Wanderer", text: shareText, url }).catch(() => {});
+    } else {
+      try {
+        const el = document.createElement("textarea");
+        el.value = url;
+        el.style.cssText = "position:fixed;opacity:0;pointer-events:none;";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2500);
+      } catch {
+        window.prompt("Copy this link:", url);
+      }
+    }
+  }
+
   function submitChat(e) {
     e?.preventDefault();
     const text = chatInput.trim();
@@ -385,10 +423,10 @@ export default function App() {
                 ? <span className="hud-state blink-slow">★ RESTING</span>
                 : <span className="hud-state">{charState === "run" ? "▶▶" : "▶"} {speedLabel}</span>
               }
-{audioStarted && (
-              <button className="mute-btn" onClick={handleMuteToggle} title={soundOn ? "mute" : "unmute"}>
-                {soundOn ? "♪" : "♪̸"}
-              </button>
+              {audioStarted && (
+                <button className="mute-btn" onClick={handleMuteToggle} title={soundOn ? "mute" : "unmute"}>
+                  {soundOn ? "♪" : "♪̸"}
+                </button>
               )}
             </div>
             <div
@@ -497,7 +535,7 @@ export default function App() {
 
           <div className="meter-block">
             <div className="meter-labels">
-              <span className="meter-label-left" style={{ color: hungerColor }}>FULLNESS — {hungerLabel}</span>
+              <span className="meter-label-left" style={{ color: hungerColor }}>HUNGER — {hungerLabel}</span>
               <span className="meter-label-right" style={{ color: hungerColor }}>
                 {hungerFillPct}<span className="meter-unit">%</span>
               </span>
@@ -583,6 +621,10 @@ export default function App() {
         THE WANDERER WALKS WHETHER YOU WATCH OR NOT.
         <br />
         ENERGY KEEPS THEM MOVING · FOOD KEEPS THEM STRONG.
+        <br />
+        <button className="share-btn" onClick={share}>
+          {shareCopied ? "✓ LINK COPIED" : "◈ SEND HELP"}
+        </button>
         <br /><br />
         <a className="kofi-link" href="https://ko-fi.com/heyjustingray" target="_blank" rel="noopener noreferrer">
           ◇ leave something for the journey
