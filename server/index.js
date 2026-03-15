@@ -25,9 +25,9 @@ const WALK_THRESHOLD  = 1;
 const DESTINATION_KM  = 6000;
 
 const BOOST_WINDOW_MS       = 10000;
-const BOOST_MAX             = 15;    // max boosts per window
+const BOOST_MAX             = 50;    // max boosts per window
 const BOOST_MIN_INTERVAL_MS = 100;   // minimum ms between boosts (human cap)
-const SESSION_BOOST_CAP     = 1000;  // max boosts per connection lifetime
+const SESSION_BOOST_CAP     = 5000;  // max boosts per connection lifetime
 
 const ENERGY_CAP      = 99999;
 const BASE_BURN_WALK  = 0.05;
@@ -321,7 +321,7 @@ wss.on("connection", (ws, req) => {
   const cfCountry = req.headers["cf-ipcountry"];
   ws.flag = (cfCountry && cfCountry !== "XX") ? countryFlag(cfCountry) : "";
   if (ws.flag) console.log(`Flag: ${ip} → ${ws.flag}`);
-  
+
   state.onlineCount = wss.clients.size;
   const feedRec = getFeedRecord(ip);
 

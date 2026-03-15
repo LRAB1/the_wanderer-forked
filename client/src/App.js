@@ -411,7 +411,7 @@ export default function App() {
 
         {/* ── CHAT PANEL ── */}
         <div className={`chat-panel ${chatOpen ? "open" : "closed"}`}>
-          <button className="chat-toggle" onClick={(e) => { e.stopPropagation(); setChatOpen(o => !o); }}>
+          <button className="chat-toggle" onClick={(e) => { e.stopPropagation(); setChatOpen(o => { if (!o) setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 0); return !o; }); }}>
             {chatOpen ? "✕" : (
               <span style={{ position: "relative" }}>
                 💬
@@ -497,7 +497,7 @@ export default function App() {
 
           <div className="meter-block">
             <div className="meter-labels">
-              <span className="meter-label-left" style={{ color: hungerColor }}>HUNGER — {hungerLabel}</span>
+              <span className="meter-label-left" style={{ color: hungerColor }}>FULLNESS — {hungerLabel}</span>
               <span className="meter-label-right" style={{ color: hungerColor }}>
                 {hungerFillPct}<span className="meter-unit">%</span>
               </span>

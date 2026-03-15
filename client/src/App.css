@@ -473,27 +473,23 @@ body { display: flex; justify-content: center; }
   .chat-name  { font-size: 7px; }
   .lore       { font-size: 7px; }
 
-  /* Mobile: chat floats over the canvas, no layout shift */
-  .scene-row { flex-direction: column; position: relative; }
+  /* Mobile: chat stacks below canvas */
+  .scene-row { flex-direction: column; }
 
+  .chat-panel.open {
+    width: 100%; min-width: 100%;
+    border-left: 2px solid var(--border);
+    border-top: none;
+    max-height: 340px;
+    overflow: hidden;
+  }
   .chat-panel.closed {
-    position: absolute;
-    bottom: 8px; right: 8px;
-    width: 42px; min-width: 42px;
+    width: 100%; min-width: 100%;
     height: 42px;
-    border: 2px solid var(--border);
+    border-left: 2px solid var(--border);
+    border-top: none;
     flex-direction: row;
     align-items: center;
-    z-index: 20;
-  }
-  .chat-panel.open {
-    position: absolute;
-    bottom: 8px; right: 8px;
-    width: calc(100% - 16px); min-width: unset;
-    max-height: 70%;
-    border: 2px solid var(--border);
-    overflow: hidden;
-    z-index: 20;
   }
   .chat-toggle {
     position: relative;
@@ -504,5 +500,5 @@ body { display: flex; justify-content: center; }
     position: absolute;
     right: 8px; top: 8px;
   }
-  .chat-header { margin-top: 36px; }
+  .chat-header { margin-top: 0; }
 }
