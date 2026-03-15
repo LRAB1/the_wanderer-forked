@@ -141,11 +141,14 @@ export function useAudio({ raining, charState, arrived, onInit }) {
     const stepFader = makeFader(s);
     stepAudio.current = { audio: s, fader: stepFader };
 
-    if (charRef.current !== "sit") {
-      s.play().then(() => {
-        if (!muted.current) stepFader.fadeIn(STEP_VOL, 0.5);
-      }).catch(() => {});
-    }
+    // Delay slightly so charRef has time to reflect server state
+    setTimeout(() => {
+      if (charRef.current !== "sit") {
+        s.play().then(() => {
+          if (!muted.current) stepFader.fadeIn(STEP_VOL, 0.5);
+        }).catch(() => {});
+      }
+    }, 500);
 
     // Pre-load feed sound
     const f = new Audio(SOUNDS_PATH + FEED_FILE);

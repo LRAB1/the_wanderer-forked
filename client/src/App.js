@@ -497,7 +497,7 @@ export default function App() {
 
           <div className="meter-block">
             <div className="meter-labels">
-              <span className="meter-label-left" style={{ color: hungerColor }}>FULLNESS — {hungerLabel}</span>
+              <span className="meter-label-left" style={{ color: hungerColor }}>HUNGER — {hungerLabel}</span>
               <span className="meter-label-right" style={{ color: hungerColor }}>
                 {hungerFillPct}<span className="meter-unit">%</span>
               </span>
