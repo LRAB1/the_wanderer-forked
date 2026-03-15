@@ -1,3 +1,6 @@
+# Local state files
+wanderer-state.json
+
 # Dependencies
 node_modules/
 client/node_modules/
