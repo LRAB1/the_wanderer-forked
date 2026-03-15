@@ -97,6 +97,17 @@ export default function App() {
     if (chatOpen) setUnreadCount(0);
   }, [chatOpen]);
 
+  // Tick every second to keep feed countdown fresh and re-enable button on expiry
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!feedsResetAt || feedsUsed === 0) return;
+    const iv = setInterval(() => {
+      setTick(t => t + 1);
+      if (Date.now() >= feedsResetAt) setFeedsUsed(0);
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [feedsResetAt, feedsUsed]);
+
   function showFeedMsg(text, duration = 3000) {
     clearTimeout(feedMsgTimer.current);
     setFeedMsg(text);
@@ -276,18 +287,19 @@ export default function App() {
   }
 
   // ── Derived ──
-  const tankFillPct  = Math.min(100, (energy / energyCap) * 100);
-  const energyColor  = energy > energyCap * 0.5 ? "#74c69d" : energy > energyCap * 0.15 ? "#ffd166" : "#ef476f";
-  const hungerPct    = Math.round(hunger);
-  const hungerColor  = hungerState === "starving" ? "#ef476f" : hungerState === "very-hungry" ? "#ff8c42" : hungerState === "hungry" ? "#ffd166" : "#74c69d";
-  const hungerLabel  = hungerState === "starving" ? "★ STARVING" : hungerState === "very-hungry" ? "VERY HUNGRY" : hungerState === "hungry" ? "HUNGRY" : "WELL FED";
-  const feedsLeft    = DAILY_FEED_MAX - feedsUsed;
-  const canFeed      = feedsLeft > 0 && !arrived;
-  const resetCountdown = feedsResetAt ? fmtCountdown(feedsResetAt - Date.now()) : null;
-  const pctToDest    = Math.min(100, (distance / DESTINATION_KM) * 100);
-  const kmRemaining  = Math.max(0, DESTINATION_KM - distance);
-  const speedLabel   = charState === "sit" ? "0 km/h" : `${speedKmh} km/h`;
-  const isFull       = energy >= energyCap - 2;
+  const tankFillPct    = Math.min(100, (energy / energyCap) * 100);
+  const energyColor    = energy > energyCap * 0.5 ? "#74c69d" : energy > energyCap * 0.15 ? "#ffd166" : "#ef476f";
+  const hungerFillPct  = Math.round(100 - hunger);
+  const hungerColor    = hungerState === "starving" ? "#ef476f" : hungerState === "very-hungry" ? "#ff8c42" : hungerState === "hungry" ? "#ffd166" : "#74c69d";
+  const hungerLabel    = hungerState === "starving" ? "★ STARVING" : hungerState === "very-hungry" ? "VERY HUNGRY" : hungerState === "hungry" ? "HUNGRY" : "WELL FED";
+  const feedsLeft      = Math.max(0, DAILY_FEED_MAX - feedsUsed);
+  const msUntilReset   = feedsResetAt ? Math.max(0, feedsResetAt - Date.now()) : 0;
+  const canFeed        = (feedsLeft > 0 || msUntilReset === 0) && !arrived;
+  const resetCountdown = msUntilReset > 0 ? fmtCountdown(msUntilReset) : null;
+  const pctToDest      = Math.min(100, (distance / DESTINATION_KM) * 100);
+  const kmRemaining    = Math.max(0, DESTINATION_KM - distance);
+  const speedLabel     = charState === "sit" ? "0 km/h" : `${speedKmh} km/h`;
+  const isFull         = energy >= energyCap - 2;
 
   return (
     <div className="app">
@@ -355,11 +367,6 @@ export default function App() {
               <span className="dot" />
               {wsConnected ? `${onlineCount} online` : "connecting..."}
             </div>
-            {(hungerState === "starving" || hungerState === "very-hungry") && (
-              <div className="hud-hunger-warn blink" style={{ color: hungerColor }}>
-                {hungerState === "starving" ? "🍖 STARVING — FEED ME!" : "🍖 VERY HUNGRY"}
-              </div>
-            )}
           </>}
 
           {arrived && (
@@ -460,11 +467,11 @@ export default function App() {
             <div className="meter-labels">
               <span className="meter-label-left" style={{ color: hungerColor }}>HUNGER — {hungerLabel}</span>
               <span className="meter-label-right" style={{ color: hungerColor }}>
-                {hungerPct}<span className="meter-unit">%</span>
+                {hungerFillPct}<span className="meter-unit">%</span>
               </span>
             </div>
             <div className="meter-track hunger">
-              <div className="meter-fill" style={{ width: `${hungerPct}%`, background: hungerColor }} />
+              <div className="meter-fill" style={{ width: `${hungerFillPct}%`, background: hungerColor }} />
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} className="meter-tick" style={{ left: `${(i+1)*10}%` }} />
               ))}
@@ -495,7 +502,11 @@ export default function App() {
               🍖 FEED
             </button>
             <div className="action-hint feed-quota" style={{ color: canFeed ? "#9090b8" : "#ef476f" }}>
-              {canFeed ? `${feedsLeft} of ${DAILY_FEED_MAX} feeds left today` : `all used · resets in ${resetCountdown}`}
+              {canFeed
+                ? `${feedsLeft} of ${DAILY_FEED_MAX} feeds left`
+                : resetCountdown
+                  ? `all used · resets in ${resetCountdown}`
+                  : `all used · refreshing...`}
             </div>
             {feedMsg && <div className="feed-msg">{feedMsg}</div>}
           </div>
