@@ -1,5 +1,6 @@
 # Local state files
 wanderer-state.json
+server/nodemon.json
 
 # Dependencies
 node_modules/
