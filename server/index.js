@@ -27,7 +27,7 @@ const DESTINATION_KM  = 6000;
 const BOOST_WINDOW_MS       = 10000;
 const BOOST_MAX             = 50;    // max boosts per window
 const BOOST_MIN_INTERVAL_MS = 100;   // minimum ms between boosts (human cap)
-const SESSION_BOOST_CAP     = 5000;  // max boosts per connection lifetime
+const SESSION_BOOST_CAP     = 9000;  // max boosts per connection lifetime
 
 const ENERGY_CAP      = 99999;
 const BASE_BURN_WALK  = 0.05;
@@ -35,7 +35,7 @@ const BASE_BURN_RUN   = 0.10;
 const BURN_PER_USER   = 0.002;
 const MAX_USER_BURN   = 0.5;
 
-const HUNGER_RATE      = 100 / (15 * 60);
+const HUNGER_RATE      = 100 / (20 * 60);
 const HUNGER_PER_FEED  = 34;
 const DAILY_FEED_LIMIT = 4;
 
@@ -147,15 +147,31 @@ function getFlag(ip, cb) {
 
 // ─── MILESTONES ───────────────────────────────────────────────────────────────
 const MILESTONES = [
+  { km: 100,  text: "They started walking. They don't remember deciding to." },
+  { km: 300,  text: "Someone asked where they were going. They said: forward. It seemed like enough." },
   { km: 500,  text: "The wanderer has been walking for a long time. They don't talk about why." },
+  { km: 750,  text: "There's a particular quality to moving. It keeps the thoughts from settling." },
+  { km: 1000, text: "They've started counting steps. Then stopped. Some things are better not measured." },
   { km: 1200, text: "Someone once told them: if you ever feel lost, just keep moving. The world is smaller than it seems." },
+  { km: 1500, text: "They passed through a town. Nobody looked up. That felt right, somehow." },
+  { km: 1800, text: "The question isn't why you keep going. The question is what you'd do if you stopped." },
   { km: 2000, text: "They used to live somewhere cold. They left when the house got too quiet." },
+  { km: 2300, text: "There are nights when the distance feels impossible. They walk anyway. That's the whole secret." },
+  { km: 2600, text: "They found an old road marker. The place it named didn't exist anymore. They kept going." },
   { km: 3000, text: "Halfway. The wanderer sits for a long time before getting up again." },
+  { km: 3300, text: "Not all movement is escape. Sometimes it's just the only honest thing left to do." },
+  { km: 3600, text: "The sky looked like something they half-remembered. They couldn't say what." },
   { km: 4000, text: "They've started recognising the quality of light in the late afternoon. It looked like this, back then." },
-  { km: 5000, text: "The cottage was built by hand. It took two summers." },
-  { km: 5500, text: "There are daffodils in spring, apparently. Someone told them that once." },
-  { km: 5900, text: "They're not sure what they'll do when they get there. Stand in the garden, maybe." },
-  { km: 6000, text: "The gate is open. It was always left open." },
+  { km: 4300, text: "A child waved from a window. They waved back. It was the kindest moment in weeks." },
+  { km: 4600, text: "They don't know what they're moving toward. They've made peace with that. Mostly." },
+  { km: 5000, text: "The cottage was built by hand. It took two summers. Someone loved something enough to build it." },
+  { km: 5200, text: "They've stopped asking if it's worth it. The asking was the thing that was weighing them down." },
+  { km: 5500, text: "There were daffodils here once, apparently. You can still see where they grew." },
+  { km: 5700, text: "The walls are gone. The chimney still stands. Something happened here, and then life continued anyway." },
+  { km: 5900, text: "The fire is still burning. Someone was here, or is still nearby. The path continues beyond it." },
+  { km: 5950, text: "They sit beside the fire for a while. Not because they've arrived. Because they're allowed to rest." },
+  { km: 5980, text: "The path continues. Of course it does. It always does." },
+  { km: 6000, text: "The gate is open. Beyond it, another road. They look at it for a long time. Then they keep walking." },
 ];
 
 // ─── STATE ────────────────────────────────────────────────────────────────────

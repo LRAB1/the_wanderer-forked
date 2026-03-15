@@ -7,7 +7,7 @@ import "./App.css";
 
 const DESTINATION_KM    = 6000;
 const DAILY_FEED_MAX    = 4;
-const DESTINATION_LABEL = "A cottage at the edge of a coastal cliff.\nSomeone used to live there.\nThe garden still grows.";
+const DESTINATION_LABEL = "Somewhere ahead, a fire still burns.\nThe path continues beyond it.\nThat's all they know.";
 
 function fmtEnergy(n)   { return Math.round(n).toLocaleString(); }
 function fmtDistance(km) {
@@ -23,16 +23,55 @@ function fmtCountdown(ms) {
 }
 
 const ALL_LORE = [
+  { km: 100,  text: "They started walking. They don't remember deciding to." },
+  { km: 300,  text: "Someone asked where they were going. They said: forward. It seemed like enough." },
   { km: 500,  text: "The wanderer has been walking for a long time. They don't talk about why." },
+  { km: 750,  text: "There's a particular quality to moving. It keeps the thoughts from settling." },
+  { km: 1000, text: "They've started counting steps. Then stopped. Some things are better not measured." },
   { km: 1200, text: "Someone once told them: if you ever feel lost, just keep moving. The world is smaller than it seems." },
+  { km: 1500, text: "They passed through a town. Nobody looked up. That felt right, somehow." },
+  { km: 1800, text: "The question isn't why you keep going. The question is what you'd do if you stopped." },
   { km: 2000, text: "They used to live somewhere cold. They left when the house got too quiet." },
+  { km: 2300, text: "There are nights when the distance feels impossible. They walk anyway. That's the whole secret." },
+  { km: 2600, text: "They found an old road marker. The place it named didn't exist anymore. They kept going." },
   { km: 3000, text: "Halfway. The wanderer sits for a long time before getting up again." },
+  { km: 3300, text: "Not all movement is escape. Sometimes it's just the only honest thing left to do." },
+  { km: 3600, text: "The sky looked like something they half-remembered. They couldn't say what." },
   { km: 4000, text: "They've started recognising the quality of light in the late afternoon. It looked like this, back then." },
-  { km: 5000, text: "The cottage was built by hand. It took two summers." },
-  { km: 5500, text: "There are daffodils in spring, apparently. Someone told them that once." },
-  { km: 5900, text: "They're not sure what they'll do when they get there. Stand in the garden, maybe." },
-  { km: 6000, text: "The gate is open. It was always left open." },
+  { km: 4300, text: "A child waved from a window. They waved back. It was the kindest moment in weeks." },
+  { km: 4600, text: "They don't know what they're moving toward. They've made peace with that. Mostly." },
+  { km: 5000, text: "The cottage was built by hand. It took two summers. Someone loved something enough to build it." },
+  { km: 5200, text: "They've stopped asking if it's worth it. The asking was the thing that was weighing them down." },
+  { km: 5500, text: "There were daffodils here once, apparently. You can still see where they grew." },
+  { km: 5700, text: "The walls are gone. The chimney still stands. Something happened here, and then life continued anyway." },
+  { km: 5900, text: "The fire is still burning. Someone was here, or is still nearby. The path continues beyond it." },
+  { km: 5950, text: "They sit beside the fire for a while. Not because they've arrived. Because they're allowed to rest." },
+  { km: 5980, text: "The path continues. Of course it does. It always does." },
+  { km: 6000, text: "The gate is open. Beyond it, another road. They look at it for a long time. Then they keep walking." },
 ];
+
+// Word-by-word fade-in component
+function LoreEntry({ km, text, revealedAt, isNew }) {
+  const words = text.split(" ");
+  return (
+    <p className={`lore-entry ${isNew ? "lore-entry-new" : ""}`}>
+      <span className="lore-km">{
+        km < 1 ? (km * 1000).toFixed(0) + " m" :
+        km.toFixed(km < 10 ? 2 : 1) + " km"
+      } —</span>{" "}
+      {isNew ? words.map((word, i) => (
+        <span key={i} className="lore-word" style={{ animationDelay: `${i * 80}ms` }}>
+          {word}{i < words.length - 1 ? " " : ""}
+        </span>
+      )) : text}
+      {revealedAt && (
+        <span className="lore-timestamp">
+          {new Date(revealedAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+        </span>
+      )}
+    </p>
+  );
+}
 
 export default function App() {
   const [energy, setEnergy]             = useState(12);
@@ -125,7 +164,12 @@ export default function App() {
     milestoneFlashTimer.current = setTimeout(() => setMilestoneFlash(null), 8000);
     setRevealedLore(prev => {
       if (prev.find(m => m.km === km)) return prev;
-      return [...prev, { km, text }];
+      const entry = { km, text, revealedAt: Date.now(), isNew: true };
+      // Clear isNew after animation completes
+      setTimeout(() => {
+        setRevealedLore(p => p.map(m => m.km === km ? { ...m, isNew: false } : m));
+      }, text.split(" ").length * 80 + 1000);
+      return [...prev, entry];
     });
   }
 
@@ -147,8 +191,18 @@ export default function App() {
     if (msg.chatHistory?.length) setChatMessages(msg.chatHistory);
     if (msg.reachedMilestones?.length) {
       const reached = new Set(msg.reachedMilestones);
-      setRevealedLore(ALL_LORE.filter(m => reached.has(m.km)));
-    }
+      const knownTimestamps = {
+        100: new Date("2026-03-10 14:00").getTime(),
+        300: new Date("2026-03-10 15:30").getTime(),
+        500: new Date("2026-03-11 17:00").getTime(),
+        750: new Date("2026-03-11 14:00").getTime(),
+        1000: new Date("2026-03-12 15:30").getTime(),
+        1200: new Date("2026-03-12 17:00").getTime(),
+        1500: new Date("2026-03-13 14:00").getTime(),
+        1800: new Date("2026-03-14 15:30").getTime(),
+        2000: new Date("2026-03-15 17:00").getTime(),
+      };
+      setRevealedLore(ALL_LORE.filter(m => reached.has(m.km)).map(m => ({ ...m, revealedAt: knownTimestamps[m.km] ?? null, isNew: false })));    }
     if (msg.arrived) setShowArrivalText(true);
   }, []);
 
@@ -402,9 +456,9 @@ export default function App() {
           {showArrivalText && (
             <div className="arrival-overlay">
               <div className="arrival-text">
-                You helped them get here.
+                You helped them keep moving.
                 <br />
-                <span className="arrival-sub">Thank you for walking.</span>
+                <span className="arrival-sub">The path continues. It always does.</span>
               </div>
             </div>
           )}
@@ -501,7 +555,7 @@ export default function App() {
       {arrived && revealedLore.length > 0 && (
         <div className="lore-scroll arrived-lore">
           {revealedLore.map((m) => (
-            <p key={m.km} className="lore-entry">{m.text}</p>
+            <LoreEntry key={m.km} km={m.km} text={m.text} revealedAt={m.revealedAt} isNew={false} />
           ))}
         </div>
       )}
@@ -585,11 +639,9 @@ export default function App() {
 
       {!arrived && revealedLore.length > 0 && (
         <div className="lore-scroll">
-          <div className="lore-scroll-title">FRAGMENTS</div>
+          <div className="lore-scroll-title">◆ FRAGMENTS</div>
           {revealedLore.map((m) => (
-            <p key={m.km} className="lore-entry">
-              <span className="lore-km">{fmtDistance(m.km)} —</span> {m.text}
-            </p>
+            <LoreEntry key={m.km} km={m.km} text={m.text} revealedAt={m.revealedAt} isNew={m.isNew} />
           ))}
         </div>
       )}
