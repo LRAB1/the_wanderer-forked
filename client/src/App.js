@@ -443,6 +443,7 @@ export default function App() {
             onPopupTick={handlePopupTick}
             raining={raining}
             fog={fog}
+            distance={distance}
           />
 
           {showArrivalText && (
@@ -651,7 +652,6 @@ export default function App() {
           </div>
         </div>
       )}
-
 
 
       {!arrived && revealedLore.length > 0 && (

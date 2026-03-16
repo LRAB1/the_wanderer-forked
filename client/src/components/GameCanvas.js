@@ -52,7 +52,7 @@ function drawBird(ctx, x, y, wingUp) {
   }
 }
 
-export default function GameCanvas({ palette, charState, energy, hungerState, arrived, popups, onPopupTick, raining, fog }) {
+export default function GameCanvas({ palette, charState, energy, hungerState, arrived, popups, onPopupTick, raining, fog, distance }) {
   const canvasRef      = useRef(null);
   const scrollRef      = useRef({ ground: 0, hill1: 0, hill2: 0 });
   const animRef        = useRef(null);
@@ -67,6 +67,7 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
   const popupsRef      = useRef(popups);
   const rainingRef     = useRef(raining);
   const fogRef         = useRef(fog);
+  const distanceRef    = useRef(distance);
   const rainParticles  = useRef([]);
 
   // ── Fog state ──
@@ -94,7 +95,8 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
   useEffect(() => { rainingRef.current     = raining;
     if (!raining) rainParticles.current = [];
   }, [raining]);
-  useEffect(() => { fogRef.current = fog; }, [fog]);
+  useEffect(() => { fogRef.current    = fog;      }, [fog]);
+  useEffect(() => { distanceRef.current = distance; }, [distance]);
 
   useEffect(() => {
     staticRef.current = {
@@ -254,6 +256,14 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
       }
     });
     ctx.globalAlpha = 1;
+
+    // ── DISTANT LANDSCAPE ──
+    const landscapeBlend = getLandscapeBlend(distanceRef.current);
+    landscapeBlend.forEach(({ idx, alpha }) => {
+      if (idx < LANDSCAPE_STAGES.length) {
+        LANDSCAPE_STAGES[idx].draw(ctx, alpha, scrollRef.current.hill2);
+      }
+    });
 
     // ── HILLS ──
     drawHill(ctx, palette.hill1, scrollRef.current.hill2, 35, H - 105, W);
@@ -524,6 +534,138 @@ function drawArrivalScene(ctx, timestamp, charAnimRef, dt, _palette) {
   const vig = ctx.createRadialGradient(W/2, H/2, H*0.15, W/2, H/2, H*0.9);
   vig.addColorStop(0, "rgba(0,0,0,0)"); vig.addColorStop(1, "rgba(0,0,0,0.65)");
   ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
+}
+
+// ── DISTANT LANDSCAPE ────────────────────────────────────────────────────────
+// Five stages that crossfade based on distance traveled
+const LANDSCAPE_STAGES = [
+  { // 0-1500 km: open countryside, flat horizon, distant farmhouse
+    draw(ctx, alpha, scrollX) {
+      // Faint flat horizon line
+      ctx.globalAlpha = alpha * 0.36;
+      ctx.fillStyle = "#3a4a35";
+      ctx.fillRect(0, H - 128, W, 4);
+      // Distant farmhouse silhouette
+      const fx = ((W * 0.7 - scrollX * 0.02) % W + W) % W;
+      ctx.globalAlpha = alpha * 0.28;
+      ctx.fillStyle = "#2e3830";
+      ctx.fillRect(fx, H - 140, 18, 12);      // house body
+      ctx.fillRect(fx - 2, H - 144, 22, 5);   // roof
+      ctx.fillRect(fx + 14, H - 148, 4, 8);   // chimney
+      ctx.globalAlpha = 1;
+    }
+  },
+  { // 1500-3000 km: low hills appearing, gentle treeline
+    draw(ctx, alpha, scrollX) {
+      ctx.globalAlpha = alpha * 0.30;
+      ctx.fillStyle = "#2e3d2a";
+      // Distant low hill
+      ctx.beginPath(); ctx.moveTo(0, H - 118);
+      for (let x = 0; x <= W; x += 8) {
+        const nx = (x + scrollX * 0.018) * 0.004;
+        const y = H - 118 - Math.sin(nx) * 18 - Math.sin(nx * 1.7) * 8;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+      // Treeline — anchored to hill surface
+      ctx.globalAlpha = alpha * 0.22;
+      ctx.fillStyle = "#263320";
+      for (let x = 20; x < W; x += 28 + Math.sin(x) * 8) {
+        const tx = ((x - scrollX * 0.022) % W + W) % W;
+        const nx = (tx + scrollX * 0.018) * 0.004;
+        const hillY = H - 118 - Math.sin(nx) * 18 - Math.sin(nx * 1.7) * 8;
+        const th = 8 + Math.sin(x * 0.3) * 4;
+        ctx.fillRect(tx, hillY - th, 4, th);
+        ctx.fillRect(tx - 2, hillY - th + 4, 8, 4);
+      }
+      ctx.globalAlpha = 1;
+    }
+  },
+  { // 3000-4500 km: prominent hills, dark treeline
+    draw(ctx, alpha, scrollX) {
+      ctx.globalAlpha = alpha * 0.32;
+      ctx.fillStyle = "#263530";
+      ctx.beginPath(); ctx.moveTo(0, H - 112);
+      for (let x = 0; x <= W; x += 6) {
+        const nx = (x + scrollX * 0.02) * 0.003;
+        const y = H - 112 - Math.sin(nx) * 28 - Math.sin(nx * 2.3 + 1) * 12;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+      // Dense treeline — anchored to hill surface
+      ctx.globalAlpha = alpha * 0.28;
+      ctx.fillStyle = "#1e2820";
+      for (let x = 0; x < W; x += 18) {
+        const tx = ((x - scrollX * 0.025) % W + W) % W;
+        const nx = (tx + scrollX * 0.02) * 0.003;
+        const hillY = H - 112 - Math.sin(nx) * 28 - Math.sin(nx * 2.3 + 1) * 12;
+        const th = 12 + Math.sin(x * 0.2) * 5;
+        ctx.fillRect(tx, hillY - th, 6, th);
+        ctx.fillRect(tx - 2, hillY - th + 4, 10, 5);
+      }
+      ctx.globalAlpha = 1;
+    }
+  },
+  { // 4500-5500 km: landscape opens, coastal feel, wider sky
+    draw(ctx, alpha, scrollX) {
+      // Flatter, wider horizon — cliffs starting to appear
+      ctx.globalAlpha = alpha * 0.28;
+      ctx.fillStyle = "#2a3840";
+      ctx.beginPath(); ctx.moveTo(0, H - 108);
+      for (let x = 0; x <= W; x += 8) {
+        const nx = (x + scrollX * 0.015) * 0.002;
+        const y = H - 108 - Math.sin(nx) * 14 - Math.sin(nx * 3) * 5;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+      // Hint of water/sea — very faint horizontal band
+      ctx.globalAlpha = alpha * 0.18;
+      ctx.fillStyle = "#304858";
+      ctx.fillRect(0, H - 114, W, 5);
+      ctx.globalAlpha = 1;
+    }
+  },
+  { // 5500-6000 km: coastal cliffs, sea visible, open windswept
+    draw(ctx, alpha, scrollX) {
+      // Cliff silhouette
+      ctx.globalAlpha = alpha * 0.36;
+      ctx.fillStyle = "#283540";
+      ctx.beginPath(); ctx.moveTo(0, H - 105);
+      for (let x = 0; x <= W; x += 6) {
+        const nx = (x + scrollX * 0.012) * 0.0025;
+        const y = H - 105 - Math.abs(Math.sin(nx)) * 22 - Math.sin(nx * 4) * 6;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath(); ctx.fill();
+      // Sea — layered faint bands
+      ctx.globalAlpha = alpha * 0.22;
+      ctx.fillStyle = "#2a4860";
+      ctx.fillRect(0, H - 115, W, 6);
+      ctx.globalAlpha = alpha * 0.16;
+      ctx.fillStyle = "#3a5870";
+      ctx.fillRect(0, H - 121, W, 4);
+      ctx.globalAlpha = 1;
+    }
+  },
+];
+
+function getLandscapeBlend(distance) {
+  const DEST = 6000;
+  const stages = [0, 1500, 3000, 4500, 5500, DEST];
+  for (let i = 0; i < stages.length - 1; i++) {
+    if (distance <= stages[i + 1]) {
+      const t = (distance - stages[i]) / (stages[i + 1] - stages[i]);
+      // Crossfade: current stage fades out, next fades in over last 20% of range
+      const fadeStart = 0.8;
+      if (t < fadeStart) return [{ idx: i, alpha: 1.0 }];
+      const blend = (t - fadeStart) / (1 - fadeStart);
+      return [
+        { idx: i,     alpha: 1.0 - blend },
+        { idx: i + 1, alpha: blend        },
+      ];
+    }
+  }
+  return [{ idx: 4, alpha: 1.0 }];
 }
 
 function drawHill(ctx, color, offsetX, amplitude, yBase, W) {
