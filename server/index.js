@@ -19,15 +19,15 @@ const RUN_SPEED_KMH   = 9.0;
 const WALK_SPEED_KMS  = WALK_SPEED_KMH / 3600;
 const RUN_SPEED_KMS   = RUN_SPEED_KMH  / 3600;
 
-const BOOST_GAIN      = 1;
-const RUN_THRESHOLD   = 40;
-const WALK_THRESHOLD  = 1;
-const DESTINATION_KM  = 6000;
+const BOOST_GAIN            = 1;
+const RUN_THRESHOLD         = 40;
+const WALK_THRESHOLD        = 1;
+const DESTINATION_KM        = 6000;
 
 const BOOST_WINDOW_MS       = 10000;
-const BOOST_MAX             = 50;    // max boosts per window
-const BOOST_MIN_INTERVAL_MS = 100;   // minimum ms between boosts (human cap)
-const SESSION_BOOST_CAP     = 9000;  // max boosts per connection lifetime
+const BOOST_MAX             = 50;
+const BOOST_MIN_INTERVAL_MS = 100;
+const SESSION_BOOST_CAP     = 9000;
 
 const ENERGY_CAP      = 99999;
 const BASE_BURN_WALK  = 0.05;
@@ -39,11 +39,27 @@ const HUNGER_RATE      = 100 / (20 * 60);
 const HUNGER_PER_FEED  = 34;
 const DAILY_FEED_LIMIT = 4;
 
+// ── Rain ──────────────────────────────────────────────────────────────────────
 const RAIN_CHANCE_PER_MIN  = 0.08;
 const RAIN_MIN_DURATION_MS = 3 * 60000;
 const RAIN_MAX_DURATION_MS = 12 * 60000;
 const RAIN_BURN_BONUS      = 1.5;
 const RAIN_SPEED_MULT      = 0.5;
+
+// ── Fog ───────────────────────────────────────────────────────────────────────
+// Fog is mutually exclusive with rain.
+// Chance is weighted by time of day: higher in morning (5-10) and evening (17-21).
+const FOG_MIN_DURATION_MS = 5 * 60000;
+const FOG_MAX_DURATION_MS = 15 * 60000;
+const FOG_BURN_BONUS      = 1.2;
+
+function getFogChance() {
+  const hour = new Date().getHours();
+  if (hour >= 5  && hour < 10) return 0.12; // morning — most likely
+  if (hour >= 17 && hour < 21) return 0.10; // evening — likely
+  if (hour >= 21 || hour < 5)  return 0.04; // night — rare
+  return 0.03;                               // afternoon — uncommon
+}
 
 // ── Chat ──────────────────────────────────────────────────────────────────────
 const CHAT_WINDOW_MS = 10000;
@@ -66,11 +82,13 @@ const chatHistory = [];
 
 // ─── WEATHER ──────────────────────────────────────────────────────────────────
 let raining   = false;
+let foggy     = false;
 let rainTimer = null;
+let fogTimer  = null;
 
 function scheduleWeather() {
   rainTimer = setTimeout(() => {
-    if (!raining && Math.random() < RAIN_CHANCE_PER_MIN) {
+    if (!raining && !foggy && Math.random() < RAIN_CHANCE_PER_MIN) {
       startRain();
     } else {
       scheduleWeather();
@@ -80,12 +98,33 @@ function scheduleWeather() {
 
 function startRain() {
   raining = true;
-  broadcastAll({ type: "WEATHER", raining: true });
+  broadcastAll({ type: "WEATHER", raining: true, fog: false });
   const duration = RAIN_MIN_DURATION_MS + Math.random() * (RAIN_MAX_DURATION_MS - RAIN_MIN_DURATION_MS);
   rainTimer = setTimeout(() => {
     raining = false;
-    broadcastAll({ type: "WEATHER", raining: false });
+    broadcastAll({ type: "WEATHER", raining: false, fog: foggy });
     scheduleWeather();
+  }, duration);
+}
+
+function scheduleFog() {
+  fogTimer = setTimeout(() => {
+    if (!raining && !foggy && Math.random() < getFogChance()) {
+      startFog();
+    } else {
+      scheduleFog();
+    }
+  }, 60000);
+}
+
+function startFog() {
+  foggy = true;
+  broadcastAll({ type: "WEATHER", raining: false, fog: true });
+  const duration = FOG_MIN_DURATION_MS + Math.random() * (FOG_MAX_DURATION_MS - FOG_MIN_DURATION_MS);
+  fogTimer = setTimeout(() => {
+    foggy = false;
+    broadcastAll({ type: "WEATHER", raining: raining, fog: false });
+    scheduleFog();
   }, duration);
 }
 
@@ -129,20 +168,6 @@ function countryFlag(code) {
   return code.toUpperCase().split("").map(c =>
     String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))
   ).join("");
-}
-
-function getFlag(ip, cb) {
-  if (!ip || ip === "unknown" || ip.startsWith("127.") ||
-      ip.startsWith("192.168.") || ip === "::1") return cb("");
-  const url = `https://ip-api.com/json/${ip}?fields=countryCode`;
-  https.get(url, (res) => {
-    let data = "";
-    res.on("data", chunk => data += chunk);
-    res.on("end", () => {
-      try { cb(countryFlag(JSON.parse(data).countryCode)); }
-      catch { cb(""); }
-    });
-  }).on("error", () => cb(""));
 }
 
 // ─── MILESTONES ───────────────────────────────────────────────────────────────
@@ -270,13 +295,14 @@ function tick() {
     state.charState = "sit";  speed = 0;              baseBurn = 0;
   }
 
-  const burnMult       = hungerBurnMultiplier(state.hunger);
-  const speedMult      = hungerSpeedMultiplier(state.hunger);
-  const energyMult     = energySpeedMultiplier(state.energy);
-  const rainSpeedMult  = raining ? RAIN_SPEED_MULT : 1.0;
-  const rainBurnMult   = raining ? RAIN_BURN_BONUS : 1.0;
+  const burnMult      = hungerBurnMultiplier(state.hunger);
+  const speedMult     = hungerSpeedMultiplier(state.hunger);
+  const energyMult    = energySpeedMultiplier(state.energy);
+  const rainSpeedMult = raining ? RAIN_SPEED_MULT : 1.0;
+  const rainBurnMult  = raining ? RAIN_BURN_BONUS : 1.0;
+  const fogBurnMult   = foggy   ? FOG_BURN_BONUS  : 1.0;
 
-  state.energy   = Math.max(0, state.energy - baseBurn * burnMult * energyBurnMultiplier(state.energy) * rainBurnMult * dt);
+  state.energy   = Math.max(0, state.energy - baseBurn * burnMult * energyBurnMultiplier(state.energy) * rainBurnMult * fogBurnMult * dt);
   state.distance = Math.min(DESTINATION_KM, state.distance + speed * speedMult * energyMult * rainSpeedMult * dt);
 
   const baseSpeedKmh      = state.charState === "run" ? RUN_SPEED_KMH : state.charState === "walk" ? WALK_SPEED_KMH : 0;
@@ -302,8 +328,8 @@ function tick() {
     distance: parseFloat(state.distance.toFixed(4)),
     onlineCount: state.onlineCount, charState: state.charState,
     arrived: state.arrived, destinationKm: DESTINATION_KM,
-    speedKmh: effectiveSpeedKmh, raining,
-    burnRate: parseFloat((baseBurn * burnMult * energyBurnMultiplier(state.energy) * rainBurnMult).toFixed(2)),
+    speedKmh: effectiveSpeedKmh, raining, fog: foggy,
+    burnRate: parseFloat((baseBurn * burnMult * energyBurnMultiplier(state.energy) * rainBurnMult * fogBurnMult).toFixed(2)),
   });
 }
 
@@ -332,7 +358,6 @@ wss.on("connection", (ws, req) => {
   ws.chatWindowStart  = Date.now();
   ws.totalBoosts      = 0;
   ws.totalFeeds       = 0;
-  ws.flag             = "";
 
   const cfCountry = req.headers["cf-ipcountry"];
   ws.flag = (cfCountry && cfCountry !== "XX") ? countryFlag(cfCountry) : "";
@@ -352,7 +377,7 @@ wss.on("connection", (ws, req) => {
     feedsUsed: feedRec.count, feedsLimit: DAILY_FEED_LIMIT,
     feedsResetAt: feedRec.resetAt,
     reachedMilestones: [...reachedMilestones],
-    raining,
+    raining, fog: foggy,
     chatHistory: chatHistory.slice(-20),
   }));
 
@@ -394,16 +419,13 @@ wss.on("connection", (ws, req) => {
           return;
         }
         ws.chatCount++;
-
         if (!msg.text || typeof msg.text !== "string") return;
         const text = msg.text.trim().slice(0, CHAT_MAX_LEN);
         if (!text) return;
-
         if (containsBlockedWord(text)) {
           ws.send(JSON.stringify({ type: "CHAT_BLOCKED", reason: "language", text: "message blocked — please keep it kind" }));
           return;
         }
-
         const entry = { username: ws.username, text, ts: Date.now() };
         chatHistory.push(entry);
         if (chatHistory.length > CHAT_HISTORY) chatHistory.shift();
@@ -431,9 +453,7 @@ wss.on("connection", (ws, req) => {
         ws.totalFeeds++;
         state.hunger      = Math.max(0, state.hunger - HUNGER_PER_FEED);
         state.hungerState = hungerLevel(state.hunger);
-
         broadcastAll({ type: "FEED_EVENT", hunger: parseFloat(state.hunger.toFixed(1)), hungerState: state.hungerState, from: ws.username, flag: ws.flag });
-
         ws.send(JSON.stringify({ type: "FEED_RESULT", success: true, hunger: parseFloat(state.hunger.toFixed(1)), hungerState: state.hungerState, feedsUsed: rec.count, feedsLimit: DAILY_FEED_LIMIT, feedsResetAt: rec.resetAt }));
       }
 
@@ -459,4 +479,5 @@ server.listen(PORT, () => {
   console.log(`   Energy cap: ${ENERGY_CAP}`);
   console.log(`   Chat limit: ${CHAT_MAX} per ${CHAT_WINDOW_MS/1000}s`);
   scheduleWeather();
+  scheduleFog();
 });

@@ -22,7 +22,37 @@ function generateGroundTiles() {
   }));
 }
 
-export default function GameCanvas({ palette, charState, energy, hungerState, arrived, popups, onPopupTick, raining, activeCheer }) {
+// ── Bird flock generator ──────────────────────────────────────────────────────
+function spawnBirdFlock() {
+  const count = 2 + Math.floor(Math.random() * 3); // 2-4 birds
+  const baseY = 20 + Math.random() * 80;
+  const speed = 28 + Math.random() * 20;
+  return Array.from({ length: count }, (_, i) => ({
+    x: -20 - i * (10 + Math.random() * 8),
+    y: baseY + (Math.random() - 0.5) * 14,
+    speed,
+    wingPhase: Math.random() * Math.PI * 2,
+    wingSpeed: 3 + Math.random() * 2,
+  }));
+}
+
+// Draw a tiny pixel bird silhouette (2 wing states)
+function drawBird(ctx, x, y, wingUp) {
+  ctx.fillStyle = "rgba(40, 35, 45, 0.7)";
+  // Body — 2x1 pixels
+  ctx.fillRect(Math.round(x), Math.round(y), 2, 1);
+  if (wingUp) {
+    // Wings up
+    ctx.fillRect(Math.round(x) - 2, Math.round(y) - 1, 2, 1);
+    ctx.fillRect(Math.round(x) + 2, Math.round(y) - 1, 2, 1);
+  } else {
+    // Wings level
+    ctx.fillRect(Math.round(x) - 2, Math.round(y), 2, 1);
+    ctx.fillRect(Math.round(x) + 2, Math.round(y), 2, 1);
+  }
+}
+
+export default function GameCanvas({ palette, charState, energy, hungerState, arrived, popups, onPopupTick, raining, fog }) {
   const canvasRef      = useRef(null);
   const scrollRef      = useRef({ ground: 0, hill1: 0, hill2: 0 });
   const animRef        = useRef(null);
@@ -36,18 +66,35 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
   const energyRef      = useRef(energy);
   const popupsRef      = useRef(popups);
   const rainingRef     = useRef(raining);
+  const fogRef         = useRef(fog);
   const rainParticles  = useRef([]);
-  const activecheerRef  = useRef(activeCheer);
-  const heartParticles  = useRef([]);
+
+  // ── Fog state ──
+  const fogOpacityRef  = useRef(0);    // current rendered opacity, fades in/out
+  const fogLayersRef   = useRef([
+    { x: 0,   speed: 8  },
+    { x: 300, speed: 5  },
+    { x: 600, speed: 11 },
+  ]);
+
+  // ── Shooting star state ──
+  const shootingStarRef  = useRef(null);
+  const nextStarTimerRef = useRef(0);
+
+  // ── Bird state ──
+  const birdsRef         = useRef([]);
+  const nextBirdTimerRef = useRef(0);
 
   useEffect(() => { hungerStateRef.current = hungerState; }, [hungerState]);
-  useEffect(() => { arrivedRef.current = arrived; },        [arrived]);
-  useEffect(() => { paletteRef.current = palette; },        [palette]);
-  useEffect(() => { charStateRef.current = charState; },    [charState]);
-  useEffect(() => { energyRef.current = energy; },          [energy]);
-  useEffect(() => { popupsRef.current = popups; },          [popups]);
-  useEffect(() => { rainingRef.current = raining; }, [raining]);
-  useEffect(() => { activecheerRef.current = activeCheer; }, [activeCheer]);
+  useEffect(() => { arrivedRef.current     = arrived;     }, [arrived]);
+  useEffect(() => { paletteRef.current     = palette;     }, [palette]);
+  useEffect(() => { charStateRef.current   = charState;   }, [charState]);
+  useEffect(() => { energyRef.current      = energy;      }, [energy]);
+  useEffect(() => { popupsRef.current      = popups;      }, [popups]);
+  useEffect(() => { rainingRef.current     = raining;
+    if (!raining) rainParticles.current = [];
+  }, [raining]);
+  useEffect(() => { fogRef.current = fog; }, [fog]);
 
   useEffect(() => {
     staticRef.current = {
@@ -55,6 +102,10 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
       clouds: generateClouds(),
       groundTiles: generateGroundTiles(),
     };
+    // First bird flock in 8-20 seconds
+    nextBirdTimerRef.current = 8 + Math.random() * 12;
+    // First shooting star in 30-90 seconds
+    nextStarTimerRef.current = 30 + Math.random() * 60;
   }, []);
 
   const drawFrame = useCallback((timestamp) => {
@@ -72,6 +123,8 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
     const palette   = paletteRef.current;
     const charState = charStateRef.current;
     const isArrived = arrivedRef.current;
+    const isRaining = rainingRef.current;
+    const isFoggy   = fogRef.current;
 
     if (isArrived) {
       drawArrivalScene(ctx, timestamp, charAnimRef, dt, palette);
@@ -80,7 +133,7 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
     }
 
     let visualSpeed = 0;
-    if (charState === "run")  visualSpeed = 110;
+    if (charState === "run")       visualSpeed = 110;
     else if (charState === "walk") visualSpeed = 60;
 
     scrollRef.current.ground += visualSpeed * dt;
@@ -122,14 +175,83 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
       ctx.globalAlpha = 1;
     }
 
+    // ── SHOOTING STAR ──
+    // Only at night (low cloudOpacity = dark sky)
+    if (starAlpha > 0.3) {
+      nextStarTimerRef.current -= dt;
+      if (nextStarTimerRef.current <= 0) {
+        // Spawn a new shooting star
+        shootingStarRef.current = {
+          x:     Math.random() * W * 0.7 + 50,
+          y:     10 + Math.random() * 60,
+          vx:    120 + Math.random() * 80,
+          vy:    30 + Math.random() * 30,
+          life:  1.0,
+          trail: 28 + Math.random() * 16,
+        };
+        // Next one in 2-5 minutes
+        nextStarTimerRef.current = 120 + Math.random() * 180;
+      }
+      if (shootingStarRef.current) {
+        const s = shootingStarRef.current;
+        s.x    += s.vx * dt;
+        s.y    += s.vy * dt;
+        s.life -= dt * 2.5;
+        if (s.life > 0) {
+          const alpha = Math.min(1, s.life * 2) * starAlpha;
+          ctx.globalAlpha = alpha;
+          ctx.strokeStyle = palette.star || "#fff";
+          ctx.lineWidth   = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x - s.vx / s.trail, s.y - s.vy / s.trail);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else {
+          shootingStarRef.current = null;
+        }
+      }
+    }
+
+    // ── BIRDS ──
+    // More common in morning/afternoon (higher cloudOpacity = daytime)
+    const isDaytime = palette.cloudOpacity > 0.15;
+    if (isDaytime && !isRaining) {
+      nextBirdTimerRef.current -= dt;
+      if (nextBirdTimerRef.current <= 0 && birdsRef.current.length === 0) {
+        birdsRef.current = spawnBirdFlock();
+        // Next flock in 25-80 seconds
+        nextBirdTimerRef.current = 25 + Math.random() * 55;
+      }
+    }
+
+    if (birdsRef.current.length > 0) {
+      birdsRef.current = birdsRef.current.map(b => ({
+        ...b,
+        x: b.x + b.speed * dt,
+        wingPhase: b.wingPhase + b.wingSpeed * dt,
+      })).filter(b => b.x < W + 30);
+
+      birdsRef.current.forEach(b => {
+        drawBird(ctx, b.x, b.y, Math.sin(b.wingPhase) > 0);
+      });
+    }
+
     // ── CLOUDS ──
-    ctx.globalAlpha = palette.cloudOpacity || 0.3;
+    // During rain: increase opacity and lower clouds
+    const rainCloudBoost = isRaining ? 0.35 : 0;
+    const cloudY         = isRaining ? 8 : 0;  // shift down slightly in rain
+    ctx.globalAlpha = Math.min(0.95, (palette.cloudOpacity || 0.3) + rainCloudBoost);
     clouds.forEach((cloud) => {
       const cx = ((cloud.x % (W + 120) + W + 120) % (W + 120));
       ctx.fillStyle = palette.text;
-      ctx.fillRect(cx,     cloud.y,      cloud.w,      8);
-      ctx.fillRect(cx + 8, cloud.y - 8,  cloud.w - 16, 8);
-      ctx.fillRect(cx + 4, cloud.y - 16, cloud.w - 24, 8);
+      ctx.fillRect(cx,     cloud.y + cloudY,      cloud.w,      8);
+      ctx.fillRect(cx + 8, cloud.y + cloudY - 8,  cloud.w - 16, 8);
+      ctx.fillRect(cx + 4, cloud.y + cloudY - 16, cloud.w - 24, 8);
+      // Extra cloud mass during rain
+      if (isRaining) {
+        ctx.fillRect(cx + 2, cloud.y + cloudY + 8, cloud.w - 4, 6);
+      }
     });
     ctx.globalAlpha = 1;
 
@@ -160,21 +282,15 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
     });
 
     // ── RAIN ──
-    if (rainingRef.current) {
-      // Darken the sky slightly
+    if (isRaining) {
       ctx.fillStyle = "rgba(20, 20, 40, 0.25)";
       ctx.fillRect(0, 0, W, H);
-
-      // Spawn drops up to max
       while (rainParticles.current.length < 80) {
         rainParticles.current.push({
-          x:      Math.random() * W,
-          y:      Math.random() * H,
-          speed:  180 + Math.random() * 80,
-          length: 8 + Math.random() * 6,
+          x: Math.random() * W, y: Math.random() * H,
+          speed: 180 + Math.random() * 80, length: 8 + Math.random() * 6,
         });
       }
-
       ctx.strokeStyle = "rgba(174, 194, 224, 0.45)";
       ctx.lineWidth = 1;
       rainParticles.current.forEach(p => {
@@ -182,12 +298,51 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
         p.x -= p.speed * 0.15 * dt;
         if (p.y > H) { p.y = 0; p.x = Math.random() * W; }
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.x - p.length * 0.15, p.y + p.length);
+        ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.length * 0.15, p.y + p.length);
         ctx.stroke();
       });
-    } else {
-      rainParticles.current = [];
+    }
+
+    // ── FOG ──
+    // Fade opacity in/out based on isFoggy
+    const fogTarget = isFoggy ? 0.72 : 0;
+    const fogDelta  = isFoggy ? 0.015 : 0.02;
+    if (fogOpacityRef.current < fogTarget) {
+      fogOpacityRef.current = Math.min(fogTarget, fogOpacityRef.current + fogDelta * dt * 20);
+    } else if (fogOpacityRef.current > fogTarget) {
+      fogOpacityRef.current = Math.max(fogTarget, fogOpacityRef.current - fogDelta * dt * 20);
+    }
+
+    if (fogOpacityRef.current > 0.01) {
+      // Drift fog layers across the scene
+      fogLayersRef.current.forEach(layer => {
+        layer.x = (layer.x + layer.speed * dt) % W;
+      });
+
+      fogLayersRef.current.forEach((layer, i) => {
+        const alphas   = [0.28, 0.20, 0.16];
+        const heights  = [55, 45, 35];
+        const yOffsets = [groundY - 20, groundY - 40, groundY - 60];
+        const alpha    = alphas[i] * fogOpacityRef.current;
+
+        for (let pass = 0; pass < 2; pass++) {
+          const xOff = pass === 0 ? layer.x - W : layer.x;
+          const fogGrad = ctx.createLinearGradient(0, yOffsets[i], 0, yOffsets[i] + heights[i]);
+          fogGrad.addColorStop(0, `rgba(200,210,205,0)`);
+          fogGrad.addColorStop(0.5, `rgba(200,210,205,${alpha})`);
+          fogGrad.addColorStop(1, `rgba(200,210,205,${alpha * 1.3})`);
+          ctx.fillStyle = fogGrad;
+          ctx.fillRect(xOff, yOffsets[i], W, heights[i]);
+        }
+      });
+
+      // Ground-level fog bank — always present when foggy
+      const groundFog = ctx.createLinearGradient(0, groundY - 30, 0, groundY + 20);
+      groundFog.addColorStop(0, `rgba(195,205,200,0)`);
+      groundFog.addColorStop(0.6, `rgba(195,205,200,${0.45 * fogOpacityRef.current})`);
+      groundFog.addColorStop(1, `rgba(195,205,200,${0.6 * fogOpacityRef.current})`);
+      ctx.fillStyle = groundFog;
+      ctx.fillRect(0, groundY - 30, W, 50);
     }
 
     // ── CHARACTER ──
@@ -198,37 +353,10 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
         * (charState === "run" ? 3.5 : 2);
     drawCharacter(ctx, charState, ca.frame, charX, charY, palette, bounce, hungerStateRef.current);
 
-
-    // ── HEARTS ──
-    if (activecheerRef.current) {
-      if (Math.random() < 0.15) {
-        heartParticles.current.push({
-          x:    charX + Math.random() * 16 - 8,
-          y:    charY - 4,
-          vy:   -(30 + Math.random() * 20),
-          life: 1.0,
-        });
-      }
-      heartParticles.current = heartParticles.current.filter(h => h.life > 0);
-      heartParticles.current.forEach(h => {
-        h.y    += h.vy * dt;
-        h.vy   *= 0.95;
-        h.life -= dt * 0.8;
-        ctx.globalAlpha = Math.max(0, h.life);
-        ctx.fillStyle   = "#e07090";
-        ctx.font        = "8px monospace";
-        ctx.fillText("♡", h.x, h.y);
-      });
-      ctx.globalAlpha = 1;
-    } else {
-      heartParticles.current = [];
-    }
-
     // ── POPUPS ──
     popupsRef.current.forEach((p) => {
       ctx.globalAlpha = Math.max(0, p.life);
       if (p.mine) {
-        // Your own boost — large, glowing, fixed above character
         ctx.font = "bold 18px monospace";
         ctx.fillStyle = "#f5c97a";
         ctx.shadowColor = "#f5c97a";
@@ -236,7 +364,6 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
         ctx.fillText(p.text, p.x, p.y);
         ctx.shadowBlur = 0;
       } else if (p.feed) {
-        // Feed notification — right side, green, slower float
         ctx.font = "bold 13px monospace";
         ctx.fillStyle = "#74c69d";
         ctx.shadowColor = "#74c69d";
@@ -245,7 +372,6 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
         ctx.fillText(p.text, Math.min(p.x, W - w - 8), p.y);
         ctx.shadowBlur = 0;
       } else {
-        // Others' boosts — small, scattered
         ctx.font = "bold 8px monospace";
         ctx.fillStyle = palette.accent;
         ctx.fillText(p.text, p.x, p.y);
@@ -286,7 +412,6 @@ function drawArrivalScene(ctx, timestamp, charAnimRef, dt, _palette) {
   const GROUND_COL = "#3a4a38"; const GROUND_LINE = "#2e3d2c";
   const HILL1 = "#2e3d30"; const HILL2 = "#364438";
   const FOG = "rgba(180,195,185,";
-  const DAFFODIL = "#d4b44a"; const STEM = "#4a6040";
 
   const ca = charAnimRef.current;
   ca.timer += dt;
@@ -304,45 +429,80 @@ function drawArrivalScene(ctx, timestamp, charAnimRef, dt, _palette) {
   ctx.fillStyle = GROUND_COL; ctx.fillRect(0, groundY, W, 60);
   ctx.fillStyle = GROUND_LINE; ctx.fillRect(0, groundY, W, 4);
 
+  // ── Ruined cottage — walls mostly gone, chimney stands ──
   const cotX = W - 180, cotY = groundY - 80;
-  ctx.fillStyle = "#4a5248"; ctx.fillRect(cotX, cotY + 20, 88, 60);
-  ctx.fillStyle = "#3a3e38";
-  ctx.fillRect(cotX - 4, cotY + 12, 96, 12);
-  ctx.fillRect(cotX + 8, cotY + 4,  72, 10);
-  ctx.fillRect(cotX + 20, cotY,     48, 6);
-  ctx.fillStyle = "#2a2e28"; ctx.fillRect(cotX + 34, cotY + 46, 20, 34);
-  ctx.fillStyle = "#6a7870";
-  ctx.fillRect(cotX + 8,  cotY + 28, 16, 14);
-  ctx.fillRect(cotX + 64, cotY + 28, 16, 14);
-  ctx.globalAlpha = 0.25; ctx.fillStyle = "#c8b87a";
-  ctx.fillRect(cotX + 9,  cotY + 29, 14, 12);
-  ctx.fillRect(cotX + 65, cotY + 29, 14, 12);
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#3a3e38"; ctx.fillRect(cotX + 60, cotY - 16, 12, 20);
 
+  // Chimney — still standing
+  ctx.fillStyle = "#3a3e38";
+  ctx.fillRect(cotX + 60, cotY - 20, 14, 60);
+  ctx.fillRect(cotX + 58, cotY - 22, 18, 6);
+
+  // Remnant walls — low, broken
+  ctx.fillStyle = "#3a4240";
+  ctx.fillRect(cotX,      cotY + 50, 30, 10); // left wall stump
+  ctx.fillRect(cotX + 58, cotY + 40, 30, 20); // right wall stump
+  ctx.fillRect(cotX + 10, cotY + 56, 50, 4);  // foundation line
+
+  // Scattered stones
+  ctx.fillStyle = "#2e3530";
+  [[cotX - 10, groundY - 8, 6, 4], [cotX + 90, groundY - 6, 8, 4],
+   [cotX + 30, groundY - 5, 5, 3], [cotX + 50, groundY - 9, 7, 4]].forEach(([x,y,w,h]) => {
+    ctx.fillRect(x, y, w, h);
+  });
+
+  // Open gate — still standing
   const gateX = cotX - 24;
   ctx.fillStyle = "#3a3e35";
   ctx.fillRect(gateX,      groundY - 24, 4, 24);
-  ctx.fillRect(gateX + 4,  groundY - 20, 14, 3);
-  ctx.fillRect(gateX + 4,  groundY - 10, 14, 3);
   ctx.fillRect(gateX + 16, groundY - 22, 3, 22);
+  // Gate open — horizontal bar pointing outward
+  ctx.fillRect(gateX + 4, groundY - 20, 12, 3);
 
+  // Campfire
+  const fireX = cotX - 60, fireY = groundY - 8;
+  ctx.fillStyle = "#2a2825";
+  ctx.fillRect(fireX - 6, fireY + 4, 14, 3); // log
+  ctx.fillRect(fireX - 2, fireY + 2, 6, 2);  // log crossing
+  // Flames — animated
+  const flicker = Math.sin(timestamp * 0.008) * 0.3 + 0.7;
+  const flicker2 = Math.sin(timestamp * 0.011 + 1) * 0.25 + 0.75;
+  ctx.globalAlpha = flicker;
+  ctx.fillStyle = "#e8a030"; ctx.fillRect(fireX - 2, fireY - 2, 4, 4);
+  ctx.fillStyle = "#f0600a"; ctx.fillRect(fireX - 1, fireY - 4, 3, 3);
+  ctx.globalAlpha = flicker2;
+  ctx.fillStyle = "#fff8c0"; ctx.fillRect(fireX, fireY - 3, 2, 2);
+  ctx.globalAlpha = 1;
+  // Glow
+  const glow = ctx.createRadialGradient(fireX + 1, fireY, 1, fireX + 1, fireY, 22);
+  glow.addColorStop(0, "rgba(240,140,20,0.18)");
+  glow.addColorStop(1, "rgba(240,140,20,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(fireX - 22, fireY - 22, 46, 44);
+
+  // Path continuing beyond — dotted line
+  ctx.fillStyle = "#4a5448";
+  for (let px = cotX + 110; px < W - 10; px += 14) {
+    ctx.fillRect(px, groundY - 2, 8, 3);
+  }
+
+  // Daffodil remnants — just stems and small hints
   [
-    { x: cotX - 40, h: 14 }, { x: cotX - 52, h: 18 }, { x: cotX - 30, h: 12 },
-    { x: cotX + 10, h: 16 }, { x: cotX + 20, h: 13 },
-    { x: cotX + 70, h: 15 }, { x: cotX + 90, h: 17 },
+    { x: cotX - 40, h: 10 }, { x: cotX - 52, h: 14 }, { x: cotX - 30, h: 8 },
   ].forEach(({ x, h }) => {
-    ctx.fillStyle = STEM; ctx.fillRect(x, groundY - h, 2, h);
-    const bloom = 0.7 + Math.sin(timestamp * 0.001 + x * 0.1) * 0.06;
-    ctx.globalAlpha = bloom; ctx.fillStyle = DAFFODIL;
-    ctx.fillRect(x - 2, groundY - h - 4, 6, 4);
-    ctx.fillRect(x - 3, groundY - h - 2, 8, 2);
+    ctx.fillStyle = "#4a6040";
+    ctx.fillRect(x, groundY - h, 2, h);
+    // Just a tiny hint of yellow — faded
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = "#d4b44a";
+    ctx.fillRect(x - 1, groundY - h - 3, 4, 2);
     ctx.globalAlpha = 1;
   });
 
-  drawCharacter(ctx, "sit", charAnimRef.current.frame, cotX - 72, groundY - CHAR_HEIGHT - 2,
+  // Wanderer sits by the fire
+  drawCharacter(ctx, "sit", charAnimRef.current.frame, cotX - 85, groundY - CHAR_HEIGHT - 2,
     { ..._palette, accent: "#d4b44a" }, 0, "full");
 
+  // Fog layers
   const fogOffset = (timestamp * 0.008) % W;
   [
     { y: H - 30, h: 30, alpha: 0.35 }, { y: H - 55, h: 28, alpha: 0.20 },

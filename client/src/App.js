@@ -98,6 +98,7 @@ export default function App() {
   const [milestoneFlash, setMilestoneFlash] = useState(null);
   const [showArrivalText, setShowArrivalText] = useState(false);
   const [raining, setRaining]           = useState(false);
+  const [fog, setFog]                   = useState(false);
   const [myUsername, setMyUsername]     = useState("");
   const [shareCopied, setShareCopied]   = useState(false);
 
@@ -158,20 +159,19 @@ export default function App() {
     feedMsgTimer.current = setTimeout(() => setFeedMsg(""), duration);
   }
 
-  function triggerMilestone(km, text) {
+  const triggerMilestone = useCallback((km, text) => {
     clearTimeout(milestoneFlashTimer.current);
     setMilestoneFlash({ km, text });
     milestoneFlashTimer.current = setTimeout(() => setMilestoneFlash(null), 8000);
     setRevealedLore(prev => {
       if (prev.find(m => m.km === km)) return prev;
       const entry = { km, text, revealedAt: Date.now(), isNew: true };
-      // Clear isNew after animation completes
       setTimeout(() => {
         setRevealedLore(p => p.map(m => m.km === km ? { ...m, isNew: false } : m));
       }, text.split(" ").length * 80 + 1000);
       return [...prev, entry];
     });
-  }
+  }, []);
 
   // ── Socket handlers ──
   const handleHello = useCallback((msg) => {
@@ -191,18 +191,8 @@ export default function App() {
     if (msg.chatHistory?.length) setChatMessages(msg.chatHistory);
     if (msg.reachedMilestones?.length) {
       const reached = new Set(msg.reachedMilestones);
-      const knownTimestamps = {
-        100: new Date("2026-03-10 14:00").getTime(),
-        300: new Date("2026-03-10 15:30").getTime(),
-        500: new Date("2026-03-11 17:00").getTime(),
-        750: new Date("2026-03-11 14:00").getTime(),
-        1000: new Date("2026-03-12 15:30").getTime(),
-        1200: new Date("2026-03-12 17:00").getTime(),
-        1500: new Date("2026-03-13 14:00").getTime(),
-        1800: new Date("2026-03-14 15:30").getTime(),
-        2000: new Date("2026-03-15 17:00").getTime(),
-      };
-      setRevealedLore(ALL_LORE.filter(m => reached.has(m.km)).map(m => ({ ...m, revealedAt: knownTimestamps[m.km] ?? null, isNew: false })));    }
+      setRevealedLore(ALL_LORE.filter(m => reached.has(m.km)).map(m => ({ ...m, revealedAt: null, isNew: false })));
+    }
     if (msg.arrived) setShowArrivalText(true);
   }, []);
 
@@ -218,6 +208,7 @@ export default function App() {
     setArrived(msg.arrived ?? false);
     setSpeedKmh(msg.speedKmh ?? 0);
     setBurnRate(msg.burnRate ?? 0);
+    if (msg.fog !== undefined) setFog(msg.fog);
   }, []);
 
   const handleMyBoost = useCallback((msg) => {
@@ -276,7 +267,7 @@ export default function App() {
   const handleMilestone = useCallback((msg) => {
     triggerMilestone(msg.km, msg.text);
     if (msg.isArrival) { setArrived(true); setShowArrivalText(true); }
-  }, []);
+  }, [triggerMilestone]);
 
   const handleReset = useCallback(() => {
     setArrived(false); setShowArrivalText(false); setRevealedLore([]);
@@ -286,7 +277,7 @@ export default function App() {
   }, []);
 
   const handleOnlineCount = useCallback((count) => setOnlineCount(count), []);
-  const handleWeather     = useCallback((isRaining) => setRaining(isRaining), []);
+  const handleWeather     = useCallback(({ raining, fog }) => { setRaining(raining); setFog(fog); }, []);
 
   const handleChatMessage = useCallback((msg) => {
     setChatMessages(prev => [...prev.slice(-99), msg]);
@@ -331,7 +322,7 @@ export default function App() {
   useEffect(() => { setWsConnected(connected); }, [connected]);
 
   // ── Audio ──
-  const { playThunder, playFeed, toggleMute } = useAudio({ raining, charState, arrived, onInit: () => setAudioStarted(true) });
+  const { playThunder, playFeed, toggleMute } = useAudio({ raining, fog, charState, arrived, onInit: () => setAudioStarted(true) });
   playFeedRef.current = playFeed;
 
   // Occasionally trigger thunder during rain
@@ -451,6 +442,7 @@ export default function App() {
             popups={popups}
             onPopupTick={handlePopupTick}
             raining={raining}
+            fog={fog}
           />
 
           {showArrivalText && (
@@ -637,15 +629,6 @@ export default function App() {
         </div>
       )}
 
-      {!arrived && revealedLore.length > 0 && (
-        <div className="lore-scroll">
-          <div className="lore-scroll-title">◆ FRAGMENTS</div>
-          {revealedLore.map((m) => (
-            <LoreEntry key={m.km} km={m.km} text={m.text} revealedAt={m.revealedAt} isNew={m.isNew} />
-          ))}
-        </div>
-      )}
-
       {!arrived && (
         <div className="stats-row">
           <div className="stat-block">
@@ -668,6 +651,18 @@ export default function App() {
           </div>
         </div>
       )}
+
+
+
+      {!arrived && revealedLore.length > 0 && (
+        <div className="lore-scroll">
+          <div className="lore-scroll-title">◆ FRAGMENTS</div>
+          {revealedLore.map((m) => (
+            <LoreEntry key={m.km} km={m.km} text={m.text} revealedAt={m.revealedAt} isNew={m.isNew} />
+          ))}
+        </div>
+      )}
+
 
       <footer className="lore">
         THE WANDERER WALKS WHETHER YOU WATCH OR NOT.
