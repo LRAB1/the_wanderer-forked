@@ -26,3 +26,6 @@ Thumbs.db
 # Editor folders
 .vscode/
 .idea/
+
+# Bot script for endpoints
+server/scripts/max-boost.js
