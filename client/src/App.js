@@ -260,7 +260,7 @@ export default function App() {
       playFeedRef.current?.();
     } else if (msg.reason === "daily_limit") {
       const msLeft = (msg.feedsResetAt || 0) - Date.now();
-      showFeedMsg(`No more food today. Resets in ${fmtCountdown(msLeft)}.`);
+      showFeedMsg(`No more rituals today. Resets in ${fmtCountdown(msLeft)}.`);
     }
   }, []);
 
@@ -607,7 +607,7 @@ export default function App() {
         <div className="actions-row">
           <div className="action-block">
             <button className={`boost-btn ${isFull ? "capped" : ""}`} onClick={boost}>
-              {isFull ? "▲ TANK FULL" : "▲ GIVE ENERGY"}
+              {isFull ? "▲ TANK FULL" : "▲ WORSHIP"}
             </button>
             <div className="action-hint">CLICK · SPACE · TAP</div>
           </div>
@@ -616,11 +616,11 @@ export default function App() {
               className={`feed-btn ${!canFeed ? "depleted" : ""}`}
               onClick={feed} disabled={!canFeed}
             >
-              🍖 FEED
+              ✨ RITUAL
             </button>
             <div className="action-hint feed-quota" style={{ color: canFeed ? "#9090b8" : "#ef476f" }}>
               {canFeed
-                ? `${feedsLeft} of ${DAILY_FEED_MAX} feeds left`
+                ? `${feedsLeft} of ${DAILY_FEED_MAX} rituals left`
                 : resetCountdown
                   ? `all used · resets in ${resetCountdown}`
                   : `all used · refreshing...`}
@@ -667,7 +667,7 @@ export default function App() {
       <footer className="lore">
         THE WANDERER WALKS WHETHER YOU WATCH OR NOT.
         <br />
-        ENERGY KEEPS THEM MOVING · FOOD KEEPS THEM STRONG.
+        WORSHIP KEEPS THEM MOVING · RITUAL KEEPS THEM STRONG.
         <br />
         <button className="share-btn" onClick={share}>
           {shareCopied ? "✓ LINK COPIED" : "◈ SEND HELP"}
@@ -689,8 +689,8 @@ export default function App() {
               {onlineList.map((u, i) => (
                 <div key={i} className="online-row">
                   <span className="online-name">{u.username}</span>
-                  <span className="online-stat" title="energy given">⚡ {u.boosts}</span>
-                  <span className="online-stat" title="times fed">🍞 {u.feeds}</span>
+                  <span className="online-stat" title="worship offered">⚡ {u.boosts}</span>
+                  <span className="online-stat" title="rituals performed">🍞 {u.feeds}</span>
                 </div>
               ))}
             </div>
