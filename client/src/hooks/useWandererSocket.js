@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const WS_URL = process.env.NODE_ENV === "development"
+const WS_URL = process.env.NODE_ENV === "development" //TODO: are dev env's really used here? LRAB1 18-3-2026
   ? "ws://localhost:3001"
   : (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host;
 

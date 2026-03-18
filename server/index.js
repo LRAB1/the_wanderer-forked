@@ -24,10 +24,12 @@ const RUN_THRESHOLD         = 40;
 const WALK_THRESHOLD        = 1;
 const DESTINATION_KM        = 6000;
 
-const BOOST_WINDOW_MS       = 10000;
-const BOOST_MAX             = 50;
+const BOOST_WINDOW_MS       = 19000;  // 100 pts per 19 s ≈ 5.3 pts/s max
+const BOOST_MAX             = 100;
 const BOOST_MIN_INTERVAL_MS = 100;
 const SESSION_BOOST_CAP     = 9000;
+
+const MAX_CONNECTIONS_PER_IP = 5;
 
 const ENERGY_CAP      = 99999;
 const BASE_BURN_WALK  = 0.05;
@@ -38,6 +40,9 @@ const MAX_USER_BURN   = 0.5;
 const HUNGER_RATE      = 100 / (20 * 60);
 const HUNGER_PER_FEED  = 34;
 const DAILY_FEED_LIMIT = 4;
+const FEED_MIN_INTERVAL_MS = 500;
+const FEED_SPAM_WINDOW_MS  = 10000;
+const FEED_SPAM_MAX        = 10;
 
 // ── Rain ──────────────────────────────────────────────────────────────────────
 const RAIN_CHANCE_PER_MIN  = 0.08;
@@ -238,6 +243,9 @@ function saveState() {
 loadState();
 setInterval(saveState, 10000);
 
+// ─── IP CONNECTION TRACKING ──────────────────────────────────────────────────
+const ipConnectionCount = new Map();
+
 // ─── FEED TRACKING ────────────────────────────────────────────────────────────
 const feedTracker      = new Map();
 const FEED_COOLDOWN_MS = 1 * 60 * 60 * 1000;
@@ -349,6 +357,15 @@ function guestName() {
 
 wss.on("connection", (ws, req) => {
   const ip = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown").split(",")[0].trim();
+
+  // ── IP connection limit ──
+  const currentIpCount = ipConnectionCount.get(ip) || 0;
+  if (currentIpCount >= MAX_CONNECTIONS_PER_IP) {
+    ws.close(1008, "Too many connections from your IP");
+    return;
+  }
+  ipConnectionCount.set(ip, currentIpCount + 1);
+
   ws.clientIp         = ip;
   ws.username         = guestName();
   ws.boostCount       = 0;
@@ -358,6 +375,10 @@ wss.on("connection", (ws, req) => {
   ws.chatWindowStart  = Date.now();
   ws.totalBoosts      = 0;
   ws.totalFeeds       = 0;
+  ws.lastFeedAt       = 0;
+  ws.feedSpamCount    = 0;
+  ws.feedSpamWindowStart = Date.now();
+  ws.feedExhaustedUntil  = 0;
 
   const cfCountry = req.headers["cf-ipcountry"];
   ws.flag = (cfCountry && cfCountry !== "XX") ? countryFlag(cfCountry) : "";
@@ -365,6 +386,7 @@ wss.on("connection", (ws, req) => {
 
   state.onlineCount = wss.clients.size;
   const feedRec = getFeedRecord(ip);
+  if (feedRec.count >= DAILY_FEED_LIMIT) ws.feedExhaustedUntil = feedRec.resetAt;
 
   ws.send(JSON.stringify({
     type: "HELLO",
@@ -444,12 +466,38 @@ wss.on("connection", (ws, req) => {
 
       // ── FEED ──
       if (msg.type === "FEED") {
+        const now = Date.now();
+
+        // If this socket/IP already exhausted feeds, short-circuit before any game-state work.
+        if (ws.feedExhaustedUntil && now < ws.feedExhaustedUntil) {
+          ws.send(JSON.stringify({ type: "FEED_RESULT", success: false, reason: "daily_limit", feedsUsed: DAILY_FEED_LIMIT, feedsLimit: DAILY_FEED_LIMIT, feedsResetAt: ws.feedExhaustedUntil }));
+          return;
+        }
+
+        if (now - ws.feedSpamWindowStart > FEED_SPAM_WINDOW_MS) {
+          ws.feedSpamCount = 0;
+          ws.feedSpamWindowStart = now;
+        }
+        if (ws.feedSpamCount >= FEED_SPAM_MAX) {
+          ws.send(JSON.stringify({ type: "FEED_RESULT", success: false, reason: "spam" }));
+          return;
+        }
+        ws.feedSpamCount++;
+
+        if (now - ws.lastFeedAt < FEED_MIN_INTERVAL_MS) {
+          ws.send(JSON.stringify({ type: "FEED_RESULT", success: false, reason: "spam" }));
+          return;
+        }
+        ws.lastFeedAt = now;
+
         const rec = getFeedRecord(ws.clientIp);
         if (rec.count >= DAILY_FEED_LIMIT) {
+          ws.feedExhaustedUntil = rec.resetAt;
           ws.send(JSON.stringify({ type: "FEED_RESULT", success: false, reason: "daily_limit", feedsUsed: rec.count, feedsLimit: DAILY_FEED_LIMIT, feedsResetAt: rec.resetAt }));
           return;
         }
         rec.count++;
+        if (rec.count >= DAILY_FEED_LIMIT) ws.feedExhaustedUntil = rec.resetAt;
         ws.totalFeeds++;
         state.hunger      = Math.max(0, state.hunger - HUNGER_PER_FEED);
         state.hungerState = hungerLevel(state.hunger);
@@ -461,6 +509,9 @@ wss.on("connection", (ws, req) => {
   });
 
   ws.on("close", () => {
+    const remaining = (ipConnectionCount.get(ip) || 1) - 1;
+    if (remaining <= 0) ipConnectionCount.delete(ip);
+    else ipConnectionCount.set(ip, remaining);
     state.onlineCount = wss.clients.size;
     broadcastAll({ type: "ONLINE_COUNT", count: wss.clients.size });
   });
