@@ -4,6 +4,23 @@ import { drawCharacter, CHAR_HEIGHT } from "./character";
 const W = 800;
 const H = 300;
 
+// ── Era boundaries matching the narrative chapters ──────────────────────────
+// era 0 — Sundowning    (0-1500 km)
+// era 1 — Atlantic      (1500-3500 km)
+// era 2 — TMBTE         (3500-5500 km)
+// era 3 — Infinite Bath (5500-6000 km)
+/**
+ * Map total distance traveled (km) to a narrative era index.
+ * @param {number} distance - Kilometers traveled (0–6000).
+ * @returns {number} Era index: 0=Sundowning, 1=Atlantic, 2=TMBTE, 3=Infinite Bath.
+ */
+function getEra(distance) {
+  if (distance < 1500) return 0;
+  if (distance < 3500) return 1;
+  if (distance < 5500) return 2;
+  return 3;
+}
+
 function generateStars(count) {
   return Array.from({ length: count }, () => ({
     x: Math.random() * W, y: Math.random() * H * 0.55,
@@ -361,7 +378,7 @@ export default function GameCanvas({ palette, charState, energy, hungerState, ar
     const bounce = charState === "sit" ? 0
       : Math.sin(timestamp * (charState === "run" ? 0.02 : 0.011))
         * (charState === "run" ? 3.5 : 2);
-    drawCharacter(ctx, charState, ca.frame, charX, charY, palette, bounce, hungerStateRef.current);
+    drawCharacter(ctx, charState, ca.frame, charX, charY, palette, bounce, hungerStateRef.current, getEra(distanceRef.current), timestamp);
 
     // ── POPUPS ──
     popupsRef.current.forEach((p) => {
@@ -508,9 +525,9 @@ function drawArrivalScene(ctx, timestamp, charAnimRef, dt, _palette) {
     ctx.globalAlpha = 1;
   });
 
-  // Wanderer sits by the fire
+  // Wanderer sits by the fire — arrived at the Infinite Bath (era 3)
   drawCharacter(ctx, "sit", charAnimRef.current.frame, cotX - 85, groundY - CHAR_HEIGHT - 2,
-    { ..._palette, accent: "#d4b44a" }, 0, "full");
+    { ..._palette, accent: "#d4b44a" }, 0, "full", 3, timestamp);
 
   // Fog layers
   const fogOffset = (timestamp * 0.008) % W;
