@@ -1,0 +1,12 @@
+{
+  "name": "wanderer-boost-farmer",
+  "version": "1.0.0",
+  "description": "Termux-compatible script to farm boost energy in The Wanderer using 5 WebSocket sockets",
+  "main": "boost_farmer.js",
+  "scripts": {
+    "start": "node boost_farmer.js"
+  },
+  "dependencies": {
+    "ws": "^8.17.1"
+  }
+}
