@@ -204,9 +204,81 @@ const SIT = [
 
 const FRAMES = { walk: WALK, run: RUN, sit: SIT };
 
+// ─── ERA DEFINITIONS ─────────────────────────────────────────────────────────
+// era 0 — Sundowning     (0-1500 km)   : grief, thinning, cool blue-grey
+// era 1 — Atlantic       (1500-3500 km): burning, consumed, moth-wings, ember
+// era 2 — TMBTE          (3500-5500 km): Veridian, feathered, flickering between selves
+// era 3 — Infinite Bath  (5500-6000 km): ethereal, pale blue, returned to source
+
+const ERA_BODY_TINT   = ["#2a3a5a", "#c46020", "#2d6a40", "#a8c8e8"];
+const ERA_TINT_AMOUNT = [0.30,       0.38,      0.38,      0.42];
+
+/**
+ * Blend a hex color toward a target hex by `amount` (0–1).
+ * @param {string} hex       - Source colour in "#rrggbb" format.
+ * @param {string} targetHex - Target colour in "#rrggbb" format.
+ * @param {number} amount    - Blend factor: 0 = unchanged, 1 = full target.
+ * @returns {string} Blended colour as "#rrggbb".
+ */
+function blendToward(hex, targetHex, amount) {
+  const [r, g, b]    = hexToRgb(hex);
+  const [tr, tg, tb] = hexToRgb(targetHex);
+  return rgbToHex(
+    Math.round(r  + (tr - r)  * amount),
+    Math.round(g  + (tg - g)  * amount),
+    Math.round(b  + (tb - b)  * amount),
+  );
+}
+
+/**
+ * Draw animated moth wings behind the character sprite for the Atlantic era.
+ * Wings are rendered as pixel-art trapezoids that flutter gently over time.
+ * @param {CanvasRenderingContext2D} ctx       - Canvas 2D context.
+ * @param {number}                  x         - Character left-edge x position.
+ * @param {number}                  y         - Character top-edge y position.
+ * @param {number}                  timestamp - Current animation timestamp (ms).
+ */
+function drawMothWings(ctx, x, y, timestamp) {
+  const flutter = Math.sin(timestamp * 0.006) * 2.5;
+  const wTop    = y + 8  + flutter * 0.35;
+  const wMid    = y + 28 + flutter * 0.15;
+  const rBase   = x + 10 * PIXEL; // right edge of the 10-wide sprite
+
+  ctx.globalAlpha = 0.72;
+  ctx.fillStyle = "#8a4e28"; // dusty amber-brown base
+
+  // Upper-left wing
+  ctx.fillRect(x - 16, wTop + 4,  16, 4);
+  ctx.fillRect(x - 20, wTop + 8,  20, 4);
+  ctx.fillRect(x - 16, wTop + 12, 16, 4);
+  ctx.fillRect(x - 12, wTop + 16, 12, 4);
+  // Lower-left wing
+  ctx.fillRect(x - 12, wMid + 4,  12, 4);
+  ctx.fillRect(x -  8, wMid + 8,   8, 4);
+
+  // Upper-right wing (mirrored)
+  ctx.fillRect(rBase,      wTop + 4,  16, 4);
+  ctx.fillRect(rBase,      wTop + 8,  20, 4);
+  ctx.fillRect(rBase,      wTop + 12, 16, 4);
+  ctx.fillRect(rBase,      wTop + 16, 12, 4);
+  // Lower-right wing
+  ctx.fillRect(rBase,      wMid + 4,  12, 4);
+  ctx.fillRect(rBase,      wMid + 8,   8, 4);
+
+  // Wing highlight veins
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = "#f0a060";
+  ctx.fillRect(x - 14, wTop + 6, 8, 2);
+  ctx.fillRect(rBase + 6, wTop + 6, 8, 2);
+
+  ctx.globalAlpha = 1;
+}
+
 // ─── DRAW ─────────────────────────────────────────────────────────────────────
 // hungerState: "full" | "hungry" | "very-hungry" | "starving"
-export function drawCharacter(ctx, charState, animFrame, x, y, palette, bounce, hungerState = "full") {
+// era:        0=Sundowning | 1=Atlantic | 2=TMBTE | 3=Infinite Bath
+// timestamp:  performance.now() value (for animated effects)
+export function drawCharacter(ctx, charState, animFrame, x, y, palette, bounce, hungerState = "full", era = 0, timestamp = 0) {
   const frames = FRAMES[charState] || FRAMES.walk;
   const frame = frames[animFrame % frames.length];
 
@@ -273,16 +345,40 @@ export function drawCharacter(ctx, charState, animFrame, x, y, palette, bounce, 
     : hungerState === "very-hungry" ? "#e89898"
     : "#f4a0a0";
 
+  // ─── ERA TINTING ─────────────────────────────────────────────────────────────
+  // Blend body colours toward the era's signature palette
+  const safEra      = Math.max(0, Math.min(3, era));
+  const eraTintHex  = ERA_BODY_TINT[safEra];
+  const eraTintAmt  = ERA_TINT_AMOUNT[safEra];
+
+  const finalBodyMain      = blendToward(bodyMain,      eraTintHex, eraTintAmt);
+  const finalBodyHighlight = blendToward(bodyHighlight, eraTintHex, eraTintAmt);
+  const finalTailColor     = blendToward(tailColor,     eraTintHex, eraTintAmt);
+  const finalLegColor      = blendToward(legColor,      eraTintHex, eraTintAmt);
+
+  // Era-specific eye overrides
+  const finalEyeColor =
+    safEra === 1 ? "#7a3010"   // Atlantic: ember-dark, burning
+    : safEra === 3 ? "#304898" // Infinite Bath: deep-sea blue
+    : eyeColor;
+
+  // Era-specific eye-shine
+  const finalEyeShine =
+    hungerState === "starving"   ? "#888"
+    : safEra === 1               ? "#ffd090"  // Atlantic: amber glint
+    : safEra === 3               ? "#d0e8ff"  // Infinite Bath: cool shimmer
+    : "#ffffff";
+
   const COLORS = {
-    1: bodyMain,
-    2: bodyHighlight,
+    1: finalBodyMain,
+    2: finalBodyHighlight,
     3: "#f5e6cc",
-    4: eyeColor,
-    5: hungerState === "starving" ? "#888" : "#ffffff",  // eye shine dims
+    4: finalEyeColor,
+    5: finalEyeShine,
     6: noseColor,
     7: blushColor,
-    8: legColor,
-    9: tailColor,
+    8: finalLegColor,
+    9: finalTailColor,
   };
 
   // When very hungry or starving, add a slight downward droop to the head rows (0-6)
@@ -290,6 +386,33 @@ export function drawCharacter(ctx, charState, animFrame, x, y, palette, bounce, 
     : hungerState === "very-hungry" ? 1
     : 0;
 
+  // ─── ERA PRE-EFFECTS ─────────────────────────────────────────────────────────
+
+  // Era 3 — Infinite Bath: soft pulsing glow radiates behind the character
+  if (safEra === 3) {
+    const pulse      = 0.70 + Math.sin(timestamp * 0.0018) * 0.22;
+    const [gr, gg, gb] = hexToRgb(ERA_BODY_TINT[3]);
+    const glow       = ctx.createRadialGradient(x + 20, y + 28, 3, x + 20, y + 28, 40);
+    glow.addColorStop(0, `rgba(${gr},${gg},${gb},${(0.22 * pulse).toFixed(3)})`);
+    glow.addColorStop(1, `rgba(${gr},${gg},${gb},0)`);
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - 18, y - 6, 76, 86);
+  }
+
+  // Era 1 — Atlantic: moth wings flutter behind the character
+  if (safEra === 1) {
+    drawMothWings(ctx, x, y, timestamp);
+  }
+
+  // ─── ERA CHARACTER ALPHA ──────────────────────────────────────────────────────
+  // Sundowning: limbs grow translucent as the journey deepens
+  // Infinite Bath: spirit becomes ethereal and barely-there
+  const eraAlpha = safEra === 0 ? 0.82
+    : safEra === 3              ? 0.88
+    : 1.0;
+  if (eraAlpha < 1.0) ctx.globalAlpha = eraAlpha;
+
+  // ─── MAIN PIXEL RENDER ───────────────────────────────────────────────────────
   frame.forEach((row, ry) => {
     // Head rows droop down; body stays put — gives a "head hanging" look
     const isHead = ry <= 6;
@@ -305,6 +428,30 @@ export function drawCharacter(ctx, charState, animFrame, x, y, palette, bounce, 
       );
     });
   });
+
+  if (eraAlpha < 1.0) ctx.globalAlpha = 1;
+
+  // ─── ERA POST-EFFECTS ────────────────────────────────────────────────────────
+
+  // Era 2 — TMBTE: flickering ghost-echo (Vessel flickers between selves)
+  if (safEra === 2) {
+    const ghostAlpha = 0.12 + Math.abs(Math.sin(timestamp * 0.0025)) * 0.14;
+    ctx.globalAlpha  = ghostAlpha;
+    frame.forEach((row, ry) => {
+      const rowBounce = bounce + (ry <= 6 ? droopOffset : 0);
+      row.forEach((v, rx) => {
+        if (!v) return;
+        ctx.fillStyle = "#4a8a58"; // ghostly Veridian echo
+        ctx.fillRect(
+          Math.floor(x + rx * PIXEL + 4),
+          Math.floor(y + ry * PIXEL + rowBounce - 2),
+          PIXEL,
+          PIXEL
+        );
+      });
+    });
+    ctx.globalAlpha = 1;
+  }
 }
 
 function hexToRgb(hex) {
