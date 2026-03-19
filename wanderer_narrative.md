@@ -1,78 +1,74 @@
 # The Wanderer — narrative spine
 
-The Wanderer does not wake so much as become aware. When the Vessel stirs — that old architecture of bone and breath dragged back into the present — the Wanderer is already watching from somewhere just outside of it. A face in the sky, fractured into panels, present but illegible. Not a god. Not a guide. Something that once knew the shape of this world and has since forgotten the language it used to describe it.
+The Wanderer wakes as Vessel awakens: stripped down, suspended between night and meaning. The world is not yet hostile, only uncertain. Above, a face in the sky appears in fragments — sometimes merciful, sometimes hungry. It is unclear whether this presence is guiding the Wanderer through the dark, or merely watching to see what they will become.
 
-The Vessel moves. The Wanderer watches. Between them, ambiguous: a thread of recognition that neither can name. Is the Wanderer leading the Vessel somewhere? Or following? The game does not answer this cleanly. It only continues.
+As night descends, the Worshipers gather not to worship a god, but to keep the night from claiming Vessel entirely. Their ritual support propels him onward, toward the ocean, toward the first crossing. The journey begins in shadow, but the shadow is already alive.
 
 ---
 
 ## Sundowning
 
-The light here is wrong — not dark, but late. The kind of afternoon that has already decided it will not become evening, only remain itself indefinitely. The Vessel moves through a landscape that keeps almost-resolving: shapes that suggest doorways, figures that could be people if they would only stay still.
+Sundowning becomes the first descent into memory and surrender. The canvas is dusky, blue-black, tidal and unresolved. Statues line the path like loved ones frozen in time: are they witnesses, protectors, or reminders of the help Vessel refuses to accept? The Wanderer moves through this landscape as though carrying grief in place of limbs.
 
-There is a woman who appears in fragments. Not in sequence. A laugh before the face that made it. A hand reaching before the body it belongs to. The Wanderer knows her — distantly, the way you know a word in a language you used to speak. The Vessel knows her differently. More completely. More painfully.
-
-The world around them is not falling apart. It is just very gently, very persistently, failing to cohere.
+By the end of the chapter, Vessel's body begins to fail in a symbolic way — his limbs turn translucent, as if his connection to the waking world is thinning. The lucid self slips. The ocean calls. He descends.
 
 ---
 
-**Puzzle insertion here:** A puzzle based on recognition and loss. The player is asked to reconstruct broken memories — aligning shadows on the ground to figures that are no longer there, matching worn stone statues to fragments of dialogue that drift past without source. The goal is not to solve grief but to reach acceptance: to understand that the assembled picture will never be complete, and to keep moving anyway. Completion is not the metric. Presence is.
+**Puzzle insertion here:** Use a puzzle based on recognition and loss. The player should reconstruct broken memories, align shadows, or match statues to fragments of dialogue. The goal is not to "solve" grief, but to accept that something has been left behind.
 
 ---
 
 ## Atlantic
 
-The water is not the Atlantic. But it is vast, and it is grey, and it carries the same weight of distance. The Vessel stands at an edge that keeps receding. Every step forward is a step the shore rearranges around. There is no panic — only the growing awareness of enclosure masquerading as openness.
+Coming up from Atlantic, the world returns transformed. The colors are oppressive, the sky glitching with the alphabet of the next phase, as if language itself is breaking under pressure. Ghost-hands reach from nowhere, trying to seize Vessel by the throat. The presence above is no longer subtle; it wants control.
 
-The symbols on the rocks were not here before. Or they were, and the Vessel only sees them now. Handprints pressed into stone at heights no human could comfortably reach. Text carved in reverse, legible only in reflection. The paths worn into the ground by some earlier passage.
+The Wanderer struggles for freedom, but every attempt at escape reveals a cruel truth: liberation is not given, it is earned through pain, and pain leaves marks. Sleep is no longer a guide. Sleep is a collector.
 
-The Vessel follows. Each choice closes off another. This is not malice. This is the logic of water — it fills the available space and then the available space is smaller. The Wanderer watches from above and does not intervene. It is not clear that intervention would help.
+At the chapter's end, Vessel grows moth-like wings. The canvas burns with eyes like fire. He is both the insect and the sacrifice; Sleep is the funeral pyre. He knows the flame will consume him, and still he moves toward it, because the only way back to Eden may be through ruin. As they burn together — branch and flood, flesh and tide — we see flashes of Euclidean lines, old promises, and the outline of a Garden not yet reached.
 
 ---
 
-**Puzzle insertion here:** A puzzle based on constraint. Locking symbols, handprints pressed into stone, mirrored text that must be read in still water, movement paths that close off as they are used. Each solved step feels like escape becoming trap. The player is not meant to feel clever here — they are meant to feel the particular intimacy of a door that locks from the inside.
+**Puzzle insertion here:** Use a puzzle based on constraint: locking symbols, handprints, mirrored text, or movement paths that close as the player uses them. Every solved step should feel like a partial escape that becomes another kind of trap.
 
 ---
 
 ## TMBTE / The Mid-journey metamorphosis
 
-Somewhere in the middle of crossing, the Vessel is not the same Vessel that began. This is not dramatic. It does not announce itself. The hands are the same hands. The weight is the same weight. But the thing that motivated the first step is no longer present, and something else has taken its place without asking permission.
+Vessel wakes torn between selves. The Worshipers see him flicker between House Veridian and Feathered Host, between person and emblem, between wound and myth. He leaves the shoreline, and an immense life-tree fades behind him like a memory trying not to die.
 
-The landscape responds to this. Not with hostility, but with a kind of solemn reconfiguration. Paths that were closed open. Paths that were open close. The symbols shift meaning depending on which self is reading them.
+The world becomes Garden-like, but the Garden is deceptive. It is Arcadia, not Eden. It is beauty with history buried under it. Ghostly footprints follow Vessel, but stop at the gates. Judgment does not chase him past that threshold because the true judgment has already begun inside him.
 
-The Wanderer's face in the sky rearranges. The fragments still do not form a coherent image. But the fragments are different fragments now. There is something in this — not hope, exactly. More like: continuation.
+Worship now sustains him. Ritual is no longer only hunger management; it becomes a system of becoming. The more the Worshipers believe, the more Vessel changes. Yet the revelation is unsettling: Sleep was never dying. Sleep was preparing. Every act of devotion sharpened it further.
+
+By the end of this chapter, Gethsemane enters the work as the place where divine burden and human resistance meet. Vessel realizes he may become a deity only by understanding what it costs to be made, unmade, and remade. He is not above the journey; he is the consequence of it.
 
 ---
 
-**Puzzle insertion here:** A puzzle based on faith and contradiction. The player is presented with choices that all appear correct — all carry the same weight of sincerity, the same evidence of rightness. They lead to different emotional outcomes. There is no clean answer. The "right" answer, insofar as one exists, is acceptance of ambiguity: the willingness to choose not because certainty exists, but because standing still is also a choice, and a worse one.
+**Puzzle insertion here:** Use a puzzle based on faith and contradiction. The player should choose between symbols that all seem correct but lead to different emotional outcomes. The "right" answer is not moral certainty; it is acceptance of ambiguity.
 
 ---
 
 ## Infinite Bath / final reckoning
 
-The last space is not a space. Or it is, but its dimensions are not spatial. The Vessel arrives here at the end of everything: the accumulated weight of every half-memory, every closed path, every choice made under conditions of incomplete information.
+At the end, Vessel floats on the water he emerged from, returned to the source but altered by everything he has endured. Beneath the surface, Sleep waits and snarls. It is bitter, almost jealous: all this glory Vessel did not earn easily, all these lessons learned through suffering that could have been understood earlier. The tragedy is not that Vessel became powerful. The tragedy is that he had to become powerful this way.
 
-There is water that is not water. There is light that behaves like forgiveness — distributed evenly, unearned, without condition. The Wanderer is here too, but the fragmentation is worse now, or better; it is harder to tell which. The face in the sky is close enough to almost touch, and close enough to finally see that it was never a face — or it was always one, and both are true.
+This is the core message of the final movement: you can let the past define you, or you can let it teach you. What happened cannot be erased, but it can be carried differently. The human condition is not a flaw to transcend; it is the weight that gives shape to becoming. Gods should not define us. They should not own us. They should not be the only language for our pain.
 
-The Vessel does not resolve. The Vessel continues. The reckoning is not judgment. It is acknowledgment: that this happened, that it mattered, that it is now part of the sediment of what is.
-
-The Wanderer watches. As it always has. As it will.
+The final ritual opens the Vault of the Heartbeat. The Worshipers are invited to leave an offering: not worship, but witness. An experience. A memory. A burden they have carried. A thing they are ready to let go of. The ritual is not about surrendering the self. It is about choosing what the self will be made from.
 
 ---
 
 ## Puzzle structure that fits the story
 
-Puzzles in The Wanderer should function as thresholds, not obstacles. They are the moment before the next room — the held breath, the hesitation at the door. They should not feel like games inserted into a story. They should feel like the story requiring something of the player before it continues.
+Keep the puzzles tied to the themes, not random mechanics. They should not stop the story; they should deepen it. Each puzzle represents a threshold the Wanderer must cross: sleep, water, flesh, faith, memory, surrender, becoming.
 
-Three categories of puzzle suit this world:
+Use them as:
 
-**Threshold puzzles** mark the boundary between states. They ask the player to perform a small act of understanding before passing through — not comprehension, exactly, but acknowledgment. Recognition.
+- **Threshold puzzles** between chapters, to mark emotional transitions.
+- **Self-puzzles**, where the answer is not "correct" in a factual sense, but reflective.
+- **Ritual puzzles**, where solving them feels like participating in the myth.
 
-**Self puzzles** turn the player's input into a mirror. What the player chooses reveals something about the Vessel, or about the player themselves. These puzzles do not have wrong answers, but all answers have weight.
-
-**Ritual puzzles** ask for repetition with variation. The same gesture performed in a new context, with different meaning. These are the puzzles that teach through recurrence — the player learns the language of the world by speaking it repeatedly until it becomes natural.
-
-### Best puzzle types for this world
+### Best puzzle types for this concept
 
 - **Memory reconstruction** — reassemble what was, knowing the seams will show
 - **Symbol matching** — find the correspondence between image and meaning across distance
@@ -82,6 +78,10 @@ Three categories of puzzle suit this world:
 - **Choice puzzles with no clean answer** — choose anyway; the choosing matters more than the outcome
 - **Offering-based puzzles** — give something up to proceed; the player carries less but moves forward
 
+Avoid anything too gamey or comedic. The tone should remain devotional, tragic, and intimate.
+
 ---
 
-Avoid anything too gamey or comedic. The tone throughout is devotional, tragic, intimate. The puzzles are not entertainment. They are acts of witness.
+## Condensed pitch
+
+The Wanderer follows Vessel through a dreamlike pilgrimage across three states of being: descent, transformation, and return. Guided or hunted by Sleep, the Worshipers help carry him through a world of night, ocean, fire, and garden, where each stage reveals that divine power is not salvation but inheritance through suffering. As Vessel passes from Sundowning's grief into Atlantic's drowning pressure and into the mythic corruption of TMBTE, he becomes both seeker and sacrifice. The journey ends in the Vault of the Heartbeat, where the final ritual asks not for worship, but for release: to offer up one experience, one burden, one memory, and choose what remains.
