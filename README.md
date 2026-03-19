@@ -155,6 +155,44 @@ The built `client/build/` folder is a static React app. Deploy it anywhere.
 
 ---
 
+## Termux Boost Farmer (Android)
+
+`scripts/boost_farmer.js` is a lightweight Node.js script that opens **5 parallel
+WebSocket connections** and sends `BOOST` messages as fast as the server allows,
+letting you farm energy from an Android phone running Termux.
+
+### One-time Termux setup
+
+```bash
+pkg install nodejs git     # install Node.js (git optional, for cloning)
+cd scripts
+npm install                # installs the ws package
+```
+
+### Run
+
+```bash
+# Default: ws://localhost:3001, 5 sockets
+node scripts/boost_farmer.js
+
+# Custom server and socket count
+node scripts/boost_farmer.js wss://your-server.example.com 5
+```
+
+### How it works
+
+| Limit              | Value  | Notes                                          |
+|--------------------|--------|------------------------------------------------|
+| Min interval       | 110 ms | Server requires > 100 ms between boosts        |
+| Window cap         | 50     | Max boosts per 10-second window, per socket    |
+| Session cap        | 9 000  | Server-side total per connection               |
+| Effective max rate | ~25/s  | 50 boosts / 10 s × 5 sockets                  |
+
+The script prints a live stats table every 5 seconds showing boosts sent,
+accepted, and the current rate.  Press **Ctrl-C** to stop cleanly.
+
+---
+
 ## Extending
 
 **Persist state across server restarts** — add a JSON file or SQLite write in `server/index.js`

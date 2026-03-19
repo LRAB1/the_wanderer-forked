@@ -6,6 +6,7 @@ server/nodemon.json
 node_modules/
 client/node_modules/
 server/node_modules/
+scripts/node_modules/
 
 # React build output
 client/build/
